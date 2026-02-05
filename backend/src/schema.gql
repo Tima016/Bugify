@@ -1,0 +1,73 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type LeaderboardEntry {
+  rank: Int!
+  reputationScore: Int!
+  totalEarnings: Float!
+  userId: String!
+  username: String!
+  validReports: Int!
+}
+
+type PlatformStats {
+  activePrograms: Int!
+  totalBountiesPaid: Float!
+  totalResearchers: Int!
+  vulnerabilitiesFixed: Int!
+}
+
+type Program {
+  companyId: String!
+  createdAt: DateTime!
+  description: String!
+  id: ID!
+  maxReward: Float!
+  minReward: Float!
+  name: String!
+  scope: String!
+  status: String!
+  updatedAt: DateTime!
+}
+
+type Query {
+  leaderboard(limit: Int): [LeaderboardEntry!]!
+  platformStats: PlatformStats!
+  program(id: String!): Program
+  programs(limit: Int, status: String): [Program!]!
+  report(id: String!): Report
+  reports(limit: Int, programId: String, status: String): [Report!]!
+  user(id: String!): User
+}
+
+type Report {
+  createdAt: DateTime!
+  description: String!
+  id: ID!
+  programId: String!
+  researcherId: String!
+  reward: Float
+  severity: String!
+  status: String!
+  title: String!
+  updatedAt: DateTime!
+}
+
+type User {
+  createdAt: DateTime!
+  email: String!
+  firstName: String
+  id: ID!
+  isVerified: Boolean!
+  lastName: String
+  reputationScore: Int!
+  role: String!
+  totalEarnings: Float!
+  username: String!
+}

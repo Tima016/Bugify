@@ -1,0 +1,59 @@
+// Append to schema.prisma - Missing Models
+
+// InvitationCode Model
+model InvitationCode {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  companyId       String
+  email           String?
+  role            UserRole  @default(RESEARCHER)
+  maxUses         Int       @default(1)
+  usedCount       Int       @default(0)
+  expiresAt       DateTime?
+  isActive        Boolean   @default(true)
+  createdById     String
+  createdAt       DateTime  @default(now())
+  
+  company         Company   @relation(fields: [companyId], references: [id])
+  createdBy       User      @relation("InvitationCodesCreated", fields: [createdById], references: [id])
+  
+  @@index([companyId])
+  @@index([code])
+  @@map("invitation_codes")
+}
+
+// LeaderboardEntry Model (Persistent)
+model LeaderboardEntry {
+  id              String    @id @default(uuid())
+  userId          String
+  rank            Int
+  reputationScore Int
+  totalEarnings   Decimal   @db.Decimal(10, 2)
+  validReports    Int
+  period          String    // e.g., "2024-01", "2024-Q1", "all-time"
+  calculatedAt    DateTime  @default(now())
+  
+  user            User      @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, period])
+  @@index([period, rank])
+  @@map("leaderboard_entries")
+}
+
+// Achievement Model
+model Achievement {
+  id              String    @id @default(uuid())
+  userId          String
+  type            String    // e.g., "FIRST_BLOOD", "CRITICAL_HUNTER", "STREAK_7"
+  title           String
+  description     String
+  iconUrl         String?
+  earnedAt        DateTime  @default(now())
+  metadata        Json?
+  
+  user            User      @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([type])
+  @@map("achievements")
+}
