@@ -4,7 +4,32 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
     const token = request.cookies.get('access_token')?.value;
     const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
-    const isPublicPage = request.nextUrl.pathname === '/' || request.nextUrl.pathname.startsWith('/public') || request.nextUrl.pathname.startsWith('/programs') || request.nextUrl.pathname.startsWith('/leaderboard');
+    const publicPaths = [
+        '/',
+        '/public',
+        '/programs',
+        '/leaderboard',
+        '/about',
+        '/platform',
+        '/solutions',
+        '/hacktivity',
+        '/academy',
+        '/blog',
+        '/careers',
+        '/partners',
+        '/contact',
+        '/privacy',
+        '/terms',
+        '/cookies',
+        '/docs',
+        '/api', // Public API docs if any
+        '/help',
+        '/status',
+        '/vdb',
+        '/intake',
+        '/contact'
+    ];
+    const isPublicPage = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
 
     // If trying to access protected route without token, redirect to login
     if (!token && !isAuthPage && !isPublicPage) {

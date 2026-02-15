@@ -139,7 +139,7 @@ export interface PayoutRequest {
     amount: number;
     currency: string;
     method: "UZCARD" | "HUMO" | "PAYPAL" | "CRYPTOCURRENCY";
-    destination: any;
+    destination: Record<string, string>;
     status: "PENDING" | "PROCESSING" | "COMPLETED" | "REJECTED";
     createdAt: string;
 }

@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import api from '@/lib/api-client';
-import { getRoleFromToken } from '@/lib/jwt-utils';
 
 interface User {
     id: string;
@@ -13,6 +12,7 @@ interface User {
     reputationScore: number;
     totalEarnings: string;
     profilePictureUrl?: string;
+    companyName?: string;
 }
 
 interface AuthState {
@@ -63,11 +63,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             const response = await api.auth.login({ emailOrUsername, password });
 
             console.log('[login] Full response:', response);
-            
+
             // Backend returns { user, accessToken, refreshToken }
             const user = response.user;
             console.log('[login] Extracted user:', user);
-            
+
             if (!user) {
                 throw new Error('No user data in response');
             }
@@ -82,8 +82,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             });
 
             console.log('[login] State updated');
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+        } catch (error: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const errorMessage = (error as any).response?.data?.message || (error as Error).message || 'Login failed';
             console.error('[login] Login failed:', errorMessage);
             console.error('[login] Full error:', error);
             set({ error: errorMessage, isLoading: false });
@@ -103,8 +104,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 isAuthenticated: true,
                 isLoading: false,
             });
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.message || 'Registration failed';
+        } catch (error: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const errorMessage = (error as any).response?.data?.message || 'Registration failed';
             set({ error: errorMessage, isLoading: false });
             throw error;
         }
@@ -158,7 +160,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 isAuthenticated: true,
                 isLoading: false
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[loadUserFromToken] Failed to load user:', error);
             set({ user: null, isAuthenticated: false, isLoading: false });
             throw error;

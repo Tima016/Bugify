@@ -33,8 +33,8 @@ const programSchema = z.object({
     description: z.string().min(10, 'Description must be at least 10 characters'),
     programType: z.enum(['PUBLIC', 'PRIVATE', 'INVITE_ONLY']),
     status: z.enum(['ACTIVE', 'PAUSED', 'CLOSED']),
-    targetTypes: z.string().transform(str => str.split(',').map(s => s.trim()).filter(Boolean)),
-    vulnerabilityTypes: z.string().transform(str => str.split(',').map(s => s.trim()).filter(Boolean)),
+    targetTypes: z.string().min(1, 'At least one target type is required'),
+    vulnerabilityTypes: z.string().min(1, 'At least one vulnerability type is required'),
     minimumPayout: z.coerce.number().min(0),
     maximumPayout: z.coerce.number().min(0),
     scope: z.string().min(10, 'Please define the scope'),
@@ -51,15 +51,15 @@ export default function EditProgramPage() {
     const [saving, setSaving] = useState(false);
 
     const form = useForm<ProgramFormValues>({
-        resolver: zodResolver(programSchema),
+        resolver: zodResolver(programSchema) as any,
         defaultValues: {
             // Defaults will be overridden by reset()
             programName: '',
             description: '',
             programType: 'PUBLIC',
             status: 'ACTIVE',
-            targetTypes: [] as any,
-            vulnerabilityTypes: [] as any,
+            targetTypes: '',
+            vulnerabilityTypes: '',
             minimumPayout: 0,
             maximumPayout: 0,
             scope: '',
@@ -103,13 +103,13 @@ export default function EditProgramPage() {
                     description: program.description,
                     programType: program.programType as any,
                     status: program.status as any,
-                    targetTypes: program.targetTypes.join(', ') as any,
-                    vulnerabilityTypes: program.vulnerabilityTypes.join(', ') as any,
+                    targetTypes: program.targetTypes.join(', '),
+                    vulnerabilityTypes: program.vulnerabilityTypes.join(', '),
                     minimumPayout: Number(program.minimumPayout),
                     maximumPayout: Number(program.maximumPayout),
                     scope: typeof program.scope === 'string' ? program.scope : (program.scope as any).description || JSON.stringify(program.scope),
-                    rulesAndGuidelines: program.rulesAndGuidelines || '',
-                    safeHarborPolicy: program.safeHarborPolicy || '',
+                    rulesAndGuidelines: (program as any).rulesAndGuidelines || '',
+                    safeHarborPolicy: (program as any).safeHarborPolicy || '',
                 });
             } catch (error) {
                 console.error('Failed to load program:', error);
@@ -129,6 +129,8 @@ export default function EditProgramPage() {
         try {
             const formattedData = {
                 ...data,
+                targetTypes: data.targetTypes.split(',').map(s => s.trim()).filter(Boolean),
+                vulnerabilityTypes: data.vulnerabilityTypes.split(',').map(s => s.trim()).filter(Boolean),
                 scope: { description: data.scope, inScope: [], outOfScope: [] },
                 disclosurePolicy: 'LIMITED'
             };

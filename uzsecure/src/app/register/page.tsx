@@ -1,19 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'; // Import Tabs from shadcn
-import { Store, User } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Shield, Lock, ArrowRight, Loader2, Bug, CheckCircle2, User, Store, AlertCircle } from 'lucide-react';
+import { BackButton } from '@/components/ui/back-button';
+import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 
-export default function RegisterPage() {
+import { Suspense } from 'react';
+
+function RegisterContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { register, isLoading, error, clearError } = useAuthStore();
     const [role, setRole] = useState<'RESEARCHER' | 'COMPANY'>('RESEARCHER');
     const [isRedirecting, setIsRedirecting] = useState(false);
+
+    useEffect(() => {
+        const roleParam = searchParams.get('role');
+        if (roleParam === 'COMPANY') {
+            setRole('COMPANY');
+        } else if (roleParam === 'RESEARCHER') {
+            setRole('RESEARCHER');
+        }
+    }, [searchParams]);
 
     const [formData, setFormData] = useState({
         email: '',
@@ -77,7 +92,7 @@ export default function RegisterPage() {
 
         try {
             console.log('[handleSubmit] Starting registration...');
-            
+
             await register({
                 email: formData.email,
                 username: formData.username,
@@ -129,38 +144,104 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
-            <Card className="w-full max-w-md">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
-                    <CardDescription className="text-center">
-                        Join UzSecure and start your journey
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Tabs defaultValue="RESEARCHER" onValueChange={(v) => setRole(v as any)} className="w-full mb-6">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="RESEARCHER" className="flex items-center gap-2">
+        <div className="min-h-screen grid lg:grid-cols-2 bg-background text-foreground overflow-hidden selection:bg-premium-accent/30">
+            {/* Visual Side (Premium Animated) */}
+            <div className="relative hidden lg:flex items-center justify-center p-12 bg-muted overflow-hidden order-2">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-premium-accent/20 rounded-full blur-[128px] animate-pulse-slow" />
+                    <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[128px] animate-pulse-slow delay-1000" />
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] opacity-20"></div>
+                </div>
+
+                <div className="relative z-10 max-w-lg">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                    >
+                        <div className="inline-flex items-center gap-2 rounded-full border border-premium-accent/30 bg-premium-accent/10 px-4 py-1.5 text-sm font-medium text-premium-accent mb-8 backdrop-blur-md shadow-premium-glow">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-premium-accent opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-premium-accent"></span>
+                            </span>
+                            Join the Network
+                        </div>
+
+                        <h1 className="text-5xl font-bold tracking-tight mb-6 leading-tight text-foreground">
+                            Start Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-premium-accent to-blue-500">Journey</span>
+                        </h1>
+                        <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
+                            Create an account to access the platform. Choose your role and start making an impact securely.
+                        </p>
+
+                        <div className="grid gap-6">
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                className="p-6 rounded-2xl bg-card/50 border border-border backdrop-blur-md shadow-lg"
+                            >
+                                <User className="h-10 w-10 text-premium-accent mb-4" />
+                                <h3 className="text-xl font-bold mb-2 text-foreground">For Researchers</h3>
+                                <p className="text-muted-foreground">Find vulnerabilities, report bugs, and earn bounties from verified companies.</p>
+                            </motion.div>
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                className="p-6 rounded-2xl bg-card/50 border border-border backdrop-blur-md shadow-lg"
+                            >
+                                <Store className="h-10 w-10 text-purple-500 mb-4" />
+                                <h3 className="text-xl font-bold mb-2 text-foreground">For Companies</h3>
+                                <p className="text-muted-foreground">Protect your assets with crowdsourced security. verified programs and expert triage.</p>
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                </div>
+            </div>
+
+            {/* Form Side */}
+            <div className="flex items-center justify-center p-6 sm:p-12 lg:p-16 relative overflow-y-auto order-1 bg-background h-screen">
+                <div className="absolute top-6 left-6 lg:left-12 z-20">
+                    <BackButton />
+                </div>
+
+                <Card variant="glass" className="w-full max-w-lg p-8 md:p-10 border-premium-accent/10 shadow-premium mt-12 lg:mt-0">
+                    <div className="text-center lg:text-left mb-8">
+                        <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-premium-accent text-white shadow-premium-glow group-hover:bg-premium-accent-dark transition-all duration-300">
+                                <Shield className="h-6 w-6" />
+                            </div>
+                            <span className="text-2xl font-bold tracking-tight">UzSecure</span>
+                        </Link>
+                        <h2 className="text-3xl font-bold tracking-tight mb-2">Create an account</h2>
+                        <p className="text-muted-foreground">
+                            Enter your details to register
+                        </p>
+                    </div>
+
+                    <Tabs value={role} onValueChange={(v) => setRole(v as any)} className="w-full mb-8">
+                        <TabsList className="grid w-full grid-cols-2 h-12 bg-muted/50 p-1">
+                            <TabsTrigger value="RESEARCHER" className="flex items-center gap-2 h-10 data-[state=active]:bg-background data-[state=active]:text-premium-accent data-[state=active]:shadow-sm">
                                 <User className="h-4 w-4" /> Researcher
                             </TabsTrigger>
-                            <TabsTrigger value="COMPANY" className="flex items-center gap-2">
+                            <TabsTrigger value="COMPANY" className="flex items-center gap-2 h-10 data-[state=active]:bg-background data-[state=active]:text-purple-500 data-[state=active]:shadow-sm">
                                 <Store className="h-4 w-4" /> Company
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {error && (
-                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-md text-sm">
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2 font-medium"
+                            >
+                                <AlertCircle className="h-4 w-4" />
                                 {error}
-                            </div>
+                            </motion.div>
                         )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label htmlFor="firstName" className="text-sm font-medium">
-                                    First Name
-                                </label>
+                                <label htmlFor="firstName" className="text-sm font-medium ml-1">First Name</label>
                                 <input
                                     id="firstName"
                                     name="firstName"
@@ -168,18 +249,13 @@ export default function RegisterPage() {
                                     required
                                     value={formData.firstName}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                    className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-premium-accent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                                     placeholder="John"
                                 />
-                                {validationErrors.firstName && (
-                                    <p className="text-xs text-red-600">{validationErrors.firstName}</p>
-                                )}
+                                {validationErrors.firstName && <p className="text-xs text-destructive ml-1">{validationErrors.firstName}</p>}
                             </div>
-
                             <div className="space-y-2">
-                                <label htmlFor="lastName" className="text-sm font-medium">
-                                    Last Name
-                                </label>
+                                <label htmlFor="lastName" className="text-sm font-medium ml-1">Last Name</label>
                                 <input
                                     id="lastName"
                                     name="lastName"
@@ -187,19 +263,15 @@ export default function RegisterPage() {
                                     required
                                     value={formData.lastName}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                    className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-premium-accent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                                     placeholder="Doe"
                                 />
-                                {validationErrors.lastName && (
-                                    <p className="text-xs text-red-600">{validationErrors.lastName}</p>
-                                )}
+                                {validationErrors.lastName && <p className="text-xs text-destructive ml-1">{validationErrors.lastName}</p>}
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="email" className="text-sm font-medium">
-                                {role === 'COMPANY' ? 'Business Email' : 'Email'}
-                            </label>
+                            <label htmlFor="email" className="text-sm font-medium ml-1">{role === 'COMPANY' ? 'Business Email' : 'Email'}</label>
                             <input
                                 id="email"
                                 name="email"
@@ -207,18 +279,14 @@ export default function RegisterPage() {
                                 required
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-premium-accent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                                 placeholder={role === 'COMPANY' ? "security@company.com" : "john@example.com"}
                             />
-                            {validationErrors.email && (
-                                <p className="text-xs text-red-600">{validationErrors.email}</p>
-                            )}
+                            {validationErrors.email && <p className="text-xs text-destructive ml-1">{validationErrors.email}</p>}
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="username" className="text-sm font-medium">
-                                Username
-                            </label>
+                            <label htmlFor="username" className="text-sm font-medium ml-1">Username</label>
                             <input
                                 id="username"
                                 name="username"
@@ -226,19 +294,15 @@ export default function RegisterPage() {
                                 required
                                 value={formData.username}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-premium-accent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                                 placeholder="johndoe"
                             />
-                            {validationErrors.username && (
-                                <p className="text-xs text-red-600">{validationErrors.username}</p>
-                            )}
+                            {validationErrors.username && <p className="text-xs text-destructive ml-1">{validationErrors.username}</p>}
                         </div>
 
                         {role === 'COMPANY' && (
                             <div className="space-y-2">
-                                <label htmlFor="companyName" className="text-sm font-medium">
-                                    Company Name
-                                </label>
+                                <label htmlFor="companyName" className="text-sm font-medium ml-1">Company Name</label>
                                 <input
                                     id="companyName"
                                     name="companyName"
@@ -246,19 +310,15 @@ export default function RegisterPage() {
                                     required
                                     value={formData.companyName}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                    className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-premium-accent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                                     placeholder="Acme Corp"
                                 />
-                                {validationErrors.companyName && (
-                                    <p className="text-xs text-red-600">{validationErrors.companyName}</p>
-                                )}
+                                {validationErrors.companyName && <p className="text-xs text-destructive ml-1">{validationErrors.companyName}</p>}
                             </div>
                         )}
 
                         <div className="space-y-2">
-                            <label htmlFor="password" className="text-sm font-medium">
-                                Password
-                            </label>
+                            <label htmlFor="password" className="text-sm font-medium ml-1">Password</label>
                             <input
                                 id="password"
                                 name="password"
@@ -266,18 +326,14 @@ export default function RegisterPage() {
                                 required
                                 value={formData.password}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-premium-accent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                                 placeholder="••••••••"
                             />
-                            {validationErrors.password && (
-                                <p className="text-xs text-red-600">{validationErrors.password}</p>
-                            )}
+                            {validationErrors.password && <p className="text-xs text-destructive ml-1">{validationErrors.password}</p>}
                         </div>
 
                         <div className="space-y-2">
-                            <label htmlFor="confirmPassword" className="text-sm font-medium">
-                                Confirm Password
-                            </label>
+                            <label htmlFor="confirmPassword" className="text-sm font-medium ml-1">Confirm Password</label>
                             <input
                                 id="confirmPassword"
                                 name="confirmPassword"
@@ -285,61 +341,74 @@ export default function RegisterPage() {
                                 required
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
-                                className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                                className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-premium-accent focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
                                 placeholder="••••••••"
                             />
-                            {validationErrors.confirmPassword && (
-                                <p className="text-xs text-red-600">{validationErrors.confirmPassword}</p>
-                            )}
+                            {validationErrors.confirmPassword && <p className="text-xs text-destructive ml-1">{validationErrors.confirmPassword}</p>}
                         </div>
 
-                        <div className="flex items-start space-x-2">
+                        <div className="flex items-start space-x-2 pt-2 ml-1">
                             <input
                                 id="agreeToTerms"
                                 name="agreeToTerms"
                                 type="checkbox"
                                 checked={formData.agreeToTerms}
                                 onChange={handleChange}
-                                className="mt-1"
+                                className="mt-1 h-4 w-4 rounded border-input bg-background text-premium-accent focus:ring-premium-accent"
                             />
-                            <label htmlFor="agreeToTerms" className="text-sm text-muted-foreground">
+                            <label htmlFor="agreeToTerms" className="text-xs text-muted-foreground leading-snug">
                                 I agree to the{' '}
-                                <Link href="/terms" className="text-primary hover:underline">
+                                <Link href="/terms" className="text-premium-accent hover:underline">
                                     Terms of Service
                                 </Link>{' '}
                                 and{' '}
-                                <Link href="/privacy" className="text-primary hover:underline">
+                                <Link href="/privacy" className="text-premium-accent hover:underline">
                                     Privacy Policy
                                 </Link>
                             </label>
                         </div>
                         {validationErrors.agreeToTerms && (
-                            <p className="text-xs text-red-600">{validationErrors.agreeToTerms}</p>
+                            <p className="text-xs text-destructive ml-1">{validationErrors.agreeToTerms}</p>
                         )}
 
                         <Button
                             type="submit"
-                            className="w-full"
+                            variant="premium"
+                            className="w-full h-11 font-medium mt-4 shadow-premium-glow"
                             disabled={isLoading || isRedirecting}
                         >
-                            {isRedirecting ? 'Redirecting...' : isLoading ? 'Creating account...' : `Create ${role === 'COMPANY' ? 'Company' : 'Researcher'} Account`}
+                            {isRedirecting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Redirecting...
+                                </>
+                            ) : isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Creating account...
+                                </>
+                            ) : (
+                                `Create ${role === 'COMPANY' ? 'Company' : 'Researcher'} Account`
+                            )}
                         </Button>
                     </form>
-                </CardContent>
-                <CardFooter className="flex flex-col space-y-4">
-                    <div className="text-sm text-center text-muted-foreground">
-                        Already have an account?{' '}
-                        <Link href="/login" className="text-primary hover:underline font-medium">
+
+                    <div className="text-center text-sm mt-6">
+                        <span className="text-muted-foreground">Already have an account? </span>
+                        <Link href="/login" className="font-semibold text-premium-accent hover:text-premium-accent-light hover:underline underline-offset-4 transition-colors">
                             Sign in
                         </Link>
                     </div>
-                    <div className="text-sm text-center text-muted-foreground">
-                        <Link href="/" className="hover:underline">
-                            ← Back to home
-                        </Link>
-                    </div>
-                </CardFooter>
-            </Card>
+                </Card>
+            </div>
         </div>
+    );
+}
+
+export default function RegisterPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-background"><Loader2 className="h-8 w-8 animate-spin text-premium-accent" /></div>}>
+            <RegisterContent />
+        </Suspense>
     );
 }

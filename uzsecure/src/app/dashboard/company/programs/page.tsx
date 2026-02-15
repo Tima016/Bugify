@@ -90,68 +90,71 @@ export default function MyProgramsPage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    filteredPrograms.map((program) => (
-                        <Card key={program.id} className="overflow-hidden">
-                            <CardContent className="p-6">
-                                <div className="flex items-start justify-between">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-semibold text-lg">{program.programName}</h3>
-                                            <Badge variant={program.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                                                {program.status}
-                                            </Badge>
-                                            <Badge variant="outline">{program.programType}</Badge>
+                    filteredPrograms.map((p) => {
+                        const program = p as any;
+                        return (
+                            <Card key={program.id} className="overflow-hidden">
+                                <CardContent className="p-6">
+                                    <div className="flex items-start justify-between">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-semibold text-lg">{program.programName}</h3>
+                                                <Badge variant={program.status === 'active' ? 'default' : 'secondary'}>
+                                                    {program.status}
+                                                </Badge>
+                                                <Badge variant="outline">{program.programType}</Badge>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground line-clamp-1 max-w-2xl">
+                                                {program.description}
+                                            </p>
                                         </div>
-                                        <p className="text-sm text-muted-foreground line-clamp-1 max-w-2xl">
-                                            {program.description}
-                                        </p>
-                                    </div>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <Link href={`/programs/${program.slug}`}>
-                                                <DropdownMenuItem>
-                                                    <Eye className="mr-2 h-4 w-4" /> View Public Page
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <Link href={`/programs/${program.slug}`}>
+                                                    <DropdownMenuItem>
+                                                        <Eye className="mr-2 h-4 w-4" /> View Public Page
+                                                    </DropdownMenuItem>
+                                                </Link>
+                                                <Link href={`/dashboard/company/programs/${program.id}/edit`}>
+                                                    <DropdownMenuItem>
+                                                        <Edit className="mr-2 h-4 w-4" /> Edit Details
+                                                    </DropdownMenuItem>
+                                                </Link>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem className="text-red-600">
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Program
                                                 </DropdownMenuItem>
-                                            </Link>
-                                            <Link href={`/dashboard/company/programs/${program.id}/edit`}>
-                                                <DropdownMenuItem>
-                                                    <Edit className="mr-2 h-4 w-4" /> Edit Details
-                                                </DropdownMenuItem>
-                                            </Link>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="text-red-600">
-                                                <Trash2 className="mr-2 h-4 w-4" /> Delete Program
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                    <div>
-                                        <p className="text-muted-foreground">Total Reports</p>
-                                        <p className="font-medium">{program.totalReportsReceived || 0}</p>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
-                                    <div>
-                                        <p className="text-muted-foreground">Valid Reports</p>
-                                        <p className="font-medium">{program.totalValidReports || 0}</p>
+                                    <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div>
+                                            <p className="text-muted-foreground">Total Reports</p>
+                                            <p className="font-medium">{program.totalReportsReceived || 0}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Valid Reports</p>
+                                            <p className="font-medium">{program.totalValidReports || 0}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Paid Out</p>
+                                            <p className="font-medium text-green-600">${Number(program.totalPaidOut).toLocaleString()}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Avg. Triage</p>
+                                            <p className="font-medium">{program.averageTriageTime || 0} hrs</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-muted-foreground">Paid Out</p>
-                                        <p className="font-medium text-green-600">${Number(program.totalPaidOut).toLocaleString()}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-muted-foreground">Avg. Triage</p>
-                                        <p className="font-medium">{program.averageTriageTime || 0} hrs</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
+                                </CardContent>
+                            </Card>
+                        )
+                    })
                 )}
             </div>
         </div>

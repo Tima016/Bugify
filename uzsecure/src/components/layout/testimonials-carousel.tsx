@@ -79,13 +79,13 @@ export function TestimonialsCarousel() {
                                                         <Star
                                                             key={i}
                                                             className={`h-4 w-4 ${i < testimonial.rating
-                                                                    ? "fill-yellow-400 text-yellow-400"
-                                                                    : "fill-muted text-muted"
+                                                                ? "fill-yellow-400 text-yellow-400"
+                                                                : "fill-muted text-muted"
                                                                 }`}
                                                         />
                                                     ))}
                                                 </div>
-                                                <p className="text-muted-foreground italic">"{testimonial.content}"</p>
+                                                <p className="text-muted-foreground italic">&quot;{testimonial.content}&quot;</p>
                                             </div>
                                             <div className="flex items-center gap-4 mt-6 pt-6 border-t">
                                                 <Avatar>

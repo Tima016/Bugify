@@ -27,7 +27,9 @@ export function sanitizeText(dirty: string): string {
 /**
  * Sanitize user input for safe display
  */
-export function sanitizeUserInput(input: any): any {
+type SanitizedInput = string | number | boolean | null | undefined | SanitizedInput[] | { [key: string]: SanitizedInput };
+
+export function sanitizeUserInput(input: unknown): SanitizedInput {
     if (typeof input === 'string') {
         return sanitizeText(input);
     }
@@ -37,12 +39,14 @@ export function sanitizeUserInput(input: any): any {
     }
 
     if (typeof input === 'object' && input !== null) {
-        const sanitized: any = {};
-        for (const key in input) {
-            sanitized[key] = sanitizeUserInput(input[key]);
+        const sanitized: { [key: string]: SanitizedInput } = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const key in input as any) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            sanitized[key] = sanitizeUserInput((input as any)[key]);
         }
         return sanitized;
     }
 
-    return input;
+    return input as SanitizedInput;
 }

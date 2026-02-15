@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { Program, Report, User, LeaderboardEntry } from '@/types';
+import { Program } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -33,16 +33,14 @@ apiClient.interceptors.response.use(
                 // Check if this 401 corresponds to a failed session check
                 const isSessionCheck = error.config?.url?.includes('/users/profile');
 
-                // If it's the session check that failed, then we should logout
+                // If it's the session check that failed, we just clear the session state but stay on the page
+                // This allows public pages to load without forcing login
                 if (isSessionCheck) {
-                    // Redirect to login handled by component or here
-                    // FORCE CLEAR COOKIES to prevent middleware loop
-                    document.cookie = 'access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-                    document.cookie = 'refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-                    window.location.href = '/login';
+                    // Optionally clear cookies but DO NOT redirect
+                    // The auth store will handle the "not authenticated" state
+                    console.warn('[ApiClient] Session check failed (401). Use is likely a guest.');
                 }
-                // For other 401s, we let the component handle it (e.g. permission denied)
-                // or user can manually logout. This prevents one failed request from wiping session state abruptly.
+                // For other 401s (e.g. accessing a protected resource), let the component handle it
             }
         }
         return Promise.reject(error);
@@ -89,18 +87,22 @@ export const api = {
             const response = await apiClient.get('/users/profile');
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         updateProfile: async (data: any) => {
             const response = await apiClient.patch('/users/profile', data);
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         updateNotificationPreferences: async (preferences: any) => {
             const response = await apiClient.patch('/users/notification-preferences', preferences);
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         updatePrivacySettings: async (settings: any) => {
             const response = await apiClient.patch('/users/privacy-settings', settings);
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         updatePreferences: async (preferences: any) => {
             const response = await apiClient.patch('/users/preferences', preferences);
             return response.data;
@@ -143,10 +145,12 @@ export const api = {
             const response = await apiClient.get(`/programs/${id}/stats`);
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         create: async (data: any) => {
             const response = await apiClient.post('/programs', data);
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         update: async (id: string, data: any) => {
             const response = await apiClient.patch(`/programs/${id}`, data);
             return response.data;
@@ -179,6 +183,7 @@ export const api = {
             const response = await apiClient.get(`/reports/${id}`);
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         create: async (data: any) => {
             const response = await apiClient.post('/reports', data);
             return response.data;
@@ -195,6 +200,7 @@ export const api = {
 
     // Payments
     payments: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         requestPayout: async (data: { amount: number; method: string; destination: any; currency: string }) => {
             const response = await apiClient.post('/payments/payout-request', data);
             return response.data;
@@ -251,6 +257,7 @@ export const api = {
             const response = await apiClient.get('/admin/dashboard-stats');
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         getUsers: async (filters?: any) => {
             const response = await apiClient.get('/admin/users', { params: filters });
             return response.data;
@@ -271,6 +278,7 @@ export const api = {
             const response = await apiClient.delete(`/admin/users/${userId}`);
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         getAllReports: async (filters?: any) => {
             const response = await apiClient.get('/admin/reports', { params: filters });
             return response.data;
@@ -283,6 +291,7 @@ export const api = {
             const response = await apiClient.patch(`/admin/payouts/${payoutId}/process`, data);
             return response.data;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         getTransactions: async (filters?: any) => {
             const response = await apiClient.get('/admin/transactions', { params: filters });
             return response.data;

@@ -102,7 +102,7 @@ export default function ReportDetailsPage() {
                         </span>
                         <span className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {formatDistanceToNow(new Date(report.createdAt), { addSuffix: true })}
+                            {report.createdAt ? formatDistanceToNow(new Date(report.createdAt), { addSuffix: true }) : 'Just now'}
                         </span>
                     </div>
                 </div>
@@ -184,11 +184,11 @@ export default function ReportDetailsPage() {
                             </div>
                             <div className="flex justify-between items-center py-2 border-b">
                                 <span className="text-muted-foreground">Created</span>
-                                <span>{new Date(report.createdAt).toLocaleDateString()}</span>
+                                <span>{report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'N/A'}</span>
                             </div>
                             <div className="flex justify-between items-center py-2 border-b">
                                 <span className="text-muted-foreground">Last Updated</span>
-                                <span>{new Date(report.updatedAt).toLocaleDateString()}</span>
+                                <span>{report.updatedAt ? new Date(report.updatedAt).toLocaleDateString() : 'N/A'}</span>
                             </div>
                             {report.bountyAmount && (
                                 <div className="flex justify-between items-center py-2 border-b">

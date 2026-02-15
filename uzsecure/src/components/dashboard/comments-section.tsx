@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api-client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
-import { Send, MessageSquare, Reply } from 'lucide-react';
+import { Send, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Comment {
@@ -38,7 +38,7 @@ export function CommentsSection({ reportId }: CommentsSectionProps) {
     const [replyTo, setReplyTo] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const fetchComments = async () => {
+    const fetchComments = useCallback(async () => {
         try {
             const data = await api.comments.getByReportId(reportId);
             // Backend returns flat list or nested depending on implementation details. 
@@ -52,11 +52,11 @@ export function CommentsSection({ reportId }: CommentsSectionProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [reportId]);
 
     useEffect(() => {
         fetchComments();
-    }, [reportId]);
+    }, [fetchComments]);
 
     const handleSubmit = async () => {
         if (!newComment.trim()) return;

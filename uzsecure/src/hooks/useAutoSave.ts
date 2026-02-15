@@ -1,33 +1,29 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { debounce } from 'lodash';
 
-interface AutoSaveOptions {
-    key: string;
-    data: any;
-    delay?: number;
-    onSave?: (data: any) => void;
-}
 
-export function useAutoSave({ key, data, delay = 2000, onSave }: AutoSaveOptions) {
+
+export function useAutoSave<T>({ key, data, delay = 2000, onSave }: { key: string; data: T; delay?: number; onSave?: (data: T) => void }) {
     const isFirstRender = useRef(true);
 
     // Debounced save function
-    const debouncedSave = useCallback(
-        debounce((dataToSave: any) => {
-            try {
-                // Save to localStorage
-                localStorage.setItem(key, JSON.stringify(dataToSave));
+    const debouncedSave = useMemo(
+        () =>
+            debounce((dataToSave: T) => {
+                try {
+                    // Save to localStorage
+                    localStorage.setItem(key, JSON.stringify(dataToSave));
 
-                // Call optional callback
-                if (onSave) {
-                    onSave(dataToSave);
+                    // Call optional callback
+                    if (onSave) {
+                        onSave(dataToSave);
+                    }
+                } catch (error) {
+                    console.error('Auto-save failed:', error);
                 }
-            } catch (error) {
-                console.error('Auto-save failed:', error);
-            }
-        }, delay),
+            }, delay),
         [key, delay, onSave]
     );
 
@@ -50,7 +46,7 @@ export function useAutoSave({ key, data, delay = 2000, onSave }: AutoSaveOptions
     }, [data, debouncedSave]);
 
     // Load saved data
-    const loadSavedData = useCallback(() => {
+    const loadSavedData = useCallback((): T | null => {
         try {
             const saved = localStorage.getItem(key);
             return saved ? JSON.parse(saved) : null;

@@ -3,7 +3,7 @@
 import { Report } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface ReportKanbanBoardProps {
@@ -37,7 +37,7 @@ export function ReportKanbanBoard({ reports }: ReportKanbanBoardProps) {
                         <div className="mb-4 flex items-center gap-2">
                             <Icon className={`h-5 w-5 ${column.color}`} />
                             <h3 className="font-semibold text-lg">{column.label}</h3>
-                            <Badge variant="secondary" className="ml-auto">
+                            <Badge className="secondary ml-auto">
                                 {columnReports.length}
                             </Badge>
                         </div>
@@ -59,11 +59,7 @@ export function ReportKanbanBoard({ reports }: ReportKanbanBoardProps) {
                                                     <CardTitle className="text-sm font-medium line-clamp-2">
                                                         {report.title}
                                                     </CardTitle>
-                                                    <Badge
-                                                        className={`text-[10px] shrink-0 ${severityColors[report.severity] || ''
-                                                            }`}
-                                                        variant="secondary"
-                                                    >
+                                                    <Badge className={`${severityColors[report.severity] || 'bg-gray-100 text-gray-800'} border-0`}>
                                                         {report.severity}
                                                     </Badge>
                                                 </div>

@@ -20,6 +20,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         // Load theme from localStorage
         const savedTheme = localStorage.getItem('theme') as Theme | null;
         if (savedTheme) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
             setTheme(savedTheme);
         }
     }, []);
@@ -35,9 +36,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                 ? 'dark'
                 : 'light';
             root.classList.add(systemTheme);
+            // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
             setResolvedTheme(systemTheme);
         } else {
             root.classList.add(theme);
+            // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
             setResolvedTheme(theme);
         }
 

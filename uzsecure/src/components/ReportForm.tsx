@@ -42,7 +42,9 @@ export default function ReportForm({ programId }: { programId: string }) {
     useEffect(() => {
         const savedDraft = loadSavedData();
         if (savedDraft) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData(savedDraft);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowDraftNotice(true);
         }
     }, [loadSavedData]);

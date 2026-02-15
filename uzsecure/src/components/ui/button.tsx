@@ -9,20 +9,25 @@ const buttonVariants = cva(
     {
         variants: {
             variant: {
-                default: "bg-primary text-primary-foreground hover:bg-primary/90",
+                default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all duration-300",
                 destructive:
-                    "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                    "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm hover:shadow-md",
                 outline:
-                    "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                    "border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-all duration-300",
                 secondary:
-                    "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                    "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm",
                 ghost: "hover:bg-accent hover:text-accent-foreground",
                 link: "text-primary underline-offset-4 hover:underline",
+                // --- PREMIUM VARIANTS ---
+                premium: "bg-premium-accent text-white shadow-premium-glow hover:bg-premium-accent-dark hover:translate-y-[-2px] transition-all duration-300 font-semibold tracking-wide",
+                'premium-outline': "border-2 border-premium-accent text-premium-accent hover:bg-premium-accent hover:text-white hover:shadow-premium-glow transition-all duration-300 font-semibold",
+                glass: "bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all duration-300",
             },
             size: {
                 default: "h-10 px-4 py-2",
                 sm: "h-9 rounded-md px-3",
                 lg: "h-11 rounded-md px-8",
+                xl: "h-14 rounded-xl px-10 text-lg", // Premium large size
                 icon: "h-10 w-10",
             },
         },

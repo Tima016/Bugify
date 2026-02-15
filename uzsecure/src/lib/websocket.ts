@@ -43,7 +43,7 @@ class WebSocketService {
         }
     }
 
-    subscribe(event: string, callback: (data: any) => void) {
+    subscribe<T = unknown>(event: string, callback: (data: T) => void) {
         if (!this.socket) this.connect(); // Ensure connected
         this.socket?.on(event, callback);
     }
@@ -53,7 +53,7 @@ class WebSocketService {
         this.socket.off(event);
     }
 
-    emit(event: string, data: any) {
+    emit<T = unknown>(event: string, data: T) {
         if (!this.socket) return;
         this.socket.emit(event, data);
     }

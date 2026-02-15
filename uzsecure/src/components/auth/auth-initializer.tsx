@@ -14,7 +14,7 @@ export function AuthInitializer() {
         const initializeAuth = async () => {
             if (hasInitializedRef.current) return;
 
-            const { loadUserFromToken, isAuthenticated } = useAuthStore.getState();
+            const { loadUserFromToken } = useAuthStore.getState();
 
             console.log('[AuthInitializer] Starting auth check...');
             hasInitializedRef.current = true;
@@ -24,7 +24,7 @@ export function AuthInitializer() {
                 // Cookies are automatically sent with requests
                 await loadUserFromToken();
                 console.log('[AuthInitializer] User loaded successfully');
-            } catch (error) {
+            } catch {
                 console.log('[AuthInitializer] No active session found, user not authenticated.');
                 // Reset authenticated flag on failed load
                 useAuthStore.setState({ isAuthenticated: false });
