@@ -14,8 +14,8 @@ export declare class LeaderboardController {
         id: string;
         reputationScore: number;
         totalEarnings: import("@prisma/client/runtime/library").Decimal;
-        userId: string;
         rank: number;
+        userId: string;
         validReports: number;
         period: string;
         calculatedAt: Date;
@@ -24,8 +24,8 @@ export declare class LeaderboardController {
         id: string;
         reputationScore: number;
         totalEarnings: import("@prisma/client/runtime/library").Decimal;
-        userId: string;
         rank: number;
+        userId: string;
         validReports: number;
         period: string;
         calculatedAt: Date;

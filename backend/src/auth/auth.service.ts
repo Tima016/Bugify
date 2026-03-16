@@ -1,29 +1,38 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+// ============================================
+// Auth Service — Hardened Authentication
+// Integrates TokenService (rotation) and LoginGuardService (bruteforce)
+// Anti-enumeration: timing-safe responses
+// ============================================
+import { Injectable, UnauthorizedException, ConflictException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TokenService } from './services/token.service';
+import { LoginGuardService } from './services/login-guard.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
-import { EnableTwoFactorDto } from './dto/two-factor.dto';
 import * as bcrypt from 'bcrypt';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
-import { User } from '@prisma/client';
+
+// Dummy hash for anti-enumeration timing attacks
+// Pre-computed bcrypt hash so invalid-user lookups take the same time as valid ones
+const DUMMY_HASH = '$2b$12$LJ3m4ys3Rl5pJrSQJxN5/.D0Fq1FcOYqR3VxBwL7MhXn8JVAo3UW2';
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
     constructor(
         private prisma: PrismaService,
-        private jwtService: JwtService,
+        private tokenService: TokenService,
+        private loginGuardService: LoginGuardService,
     ) { }
 
     async register(registerDto: RegisterDto) {
         const { email, username, password, firstName, lastName, role, companyName } = registerDto;
 
-        // Validation: Company name required for COMPANY role
         if (role === 'COMPANY' && !companyName) {
             throw new ConflictException('Company name is required for company accounts');
         }
 
-        // Check if user already exists
         const existingUser = await this.prisma.user.findFirst({
             where: {
                 OR: [{ email }, { username }],
@@ -34,7 +43,6 @@ export class AuthService {
             throw new ConflictException('Email or username already exists');
         }
 
-        // Check if company exists if registering as company
         if (role === 'COMPANY') {
             const existingCompany = await this.prisma.company.findUnique({
                 where: { companyName },
@@ -44,10 +52,8 @@ export class AuthService {
             }
         }
 
-        // Hash password
         const passwordHash = await bcrypt.hash(password, 12);
 
-        // Transaction to create User and potentially Company
         const user = await this.prisma.$transaction(async (tx) => {
             let companyId: string | null = null;
 
@@ -55,9 +61,9 @@ export class AuthService {
                 const company = await tx.company.create({
                     data: {
                         companyName: companyName!,
-                        legalName: companyName!, // Defaulting legal name to company name for simple signup
-                        verificationStatus: 'PENDING'
-                    }
+                        legalName: companyName!,
+                        verificationStatus: 'PENDING',
+                    },
                 });
                 companyId = company.id;
             }
@@ -70,7 +76,7 @@ export class AuthService {
                     firstName,
                     lastName,
                     role: (role as any) || 'RESEARCHER',
-                    companyId
+                    companyId,
                 },
                 select: {
                     id: true,
@@ -85,49 +91,69 @@ export class AuthService {
             });
         });
 
-        // Generate tokens
-        const tokens = await this.generateTokens(user.id, user.email, user.role);
+        // Generate token pair with family tracking
+        const tokens = await this.tokenService.generateTokenPair(user.id, user.email, user.role);
 
-        return {
-            user,
-            ...tokens,
-        };
+        return { user, ...tokens };
     }
 
-    async login(loginDto: LoginDto) {
+    async login(loginDto: LoginDto, clientIp: string) {
         const { emailOrUsername, password, twoFactorCode } = loginDto as LoginDto & { twoFactorCode?: string };
 
-        // Find user by email or username
+        // Check IP lockout first
+        const ipLock = await this.loginGuardService.isLockedOut(clientIp);
+        if (ipLock.locked) {
+            throw new ForbiddenException(
+                `Account locked due to too many failed attempts. Try again after ${ipLock.endsAt?.toISOString()}`,
+            );
+        }
+
+        // Find user
         const user = await this.prisma.user.findFirst({
             where: {
                 OR: [{ email: emailOrUsername }, { username: emailOrUsername }],
             },
         });
 
-        if (!user) {
+        // Anti-enumeration: always compare against a hash, even if user doesn't exist
+        const hashToCompare = user?.passwordHash || DUMMY_HASH;
+        const isPasswordValid = await bcrypt.compare(password, hashToCompare);
+
+        if (!user || !isPasswordValid) {
+            // Record failed attempt
+            await this.loginGuardService.recordFailedAttempt(clientIp, user?.id);
+            // Same error message regardless of which part failed
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
-        if (!isPasswordValid) {
-            throw new UnauthorizedException('Invalid credentials');
+        // Check user-specific lockout
+        const userLock = await this.loginGuardService.isLockedOut(user.id);
+        if (userLock.locked) {
+            throw new ForbiddenException(
+                `Account locked due to too many failed attempts. Try again later.`,
+            );
         }
 
-        // Check 2FA
+        // Check ban status
+        if (user.isBanned) {
+            throw new ForbiddenException('Account is banned');
+        }
+
+        // 2FA check
         if (user.twoFactorEnabled) {
             if (!twoFactorCode) {
-                // Return explicitly that 2FA is required, or throw exception
-                // For this implementation, we throw specific error that frontend can catch
                 throw new UnauthorizedException('2FA code required');
             }
 
             const isValid = await this.verifyTwoFactorCode(twoFactorCode, user.id);
             if (!isValid) {
+                await this.loginGuardService.recordFailedAttempt(clientIp, user.id);
                 throw new UnauthorizedException('Invalid 2FA code');
             }
         }
+
+        // Success — clear lockout counters
+        await this.loginGuardService.clearAttempts(clientIp, user.id);
 
         // Update last login
         await this.prisma.user.update({
@@ -135,44 +161,28 @@ export class AuthService {
             data: { lastLoginAt: new Date() },
         });
 
-        // Generate tokens
-        const tokens = await this.generateTokens(user.id, user.email, user.role);
+        // Generate token pair with family tracking
+        const tokens = await this.tokenService.generateTokenPair(user.id, user.email, user.role);
 
-        return {
-            user,
-            ...tokens,
-        };
+        // Return user without sensitive fields
+        const { passwordHash, twoFactorSecret, backupCodes, ...safeUser } = user;
+
+        return { user: safeUser, ...tokens };
     }
 
-    // New method to verify refresh token and generate new pair (simplified)
     async refreshTokens(refreshToken: string) {
-        try {
-            const payload = await this.jwtService.verifyAsync(refreshToken);
-            const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-            if (!user) {
-                throw new UnauthorizedException('User not found');
-            }
-            return this.generateTokens(user.id, user.email, user.role);
-        } catch (e) {
-            throw new UnauthorizedException('Invalid refresh token');
-        }
+        return this.tokenService.rotateRefreshToken(refreshToken);
     }
 
-    async generateTwoFactorSecret(user: { id: string; email: string }) {
-        const secret = authenticator.generateSecret();
-        const otpauthUrl = authenticator.keyuri(user.email, 'UzSecure', secret);
-
-        await this.prisma.user.update({
-            where: { id: user.id },
-            data: { twoFactorSecret: secret },
-        });
-
-        const qrCodeUrl = await toDataURL(otpauthUrl);
-
-        return {
-            secret,
-            qrCodeUrl,
-        };
+    async logout(refreshToken: string) {
+        try {
+            const payload = await this.tokenService['jwtService'].verifyAsync(refreshToken);
+            if (payload.familyId) {
+                await this.tokenService.revokeTokenFamily(payload.familyId);
+            }
+        } catch {
+            // Token might be expired, still clear cookies in controller
+        }
     }
 
     async verifyTwoFactorCode(code: string, userId: string) {
@@ -200,10 +210,11 @@ export class AuthService {
             where: { id: userId },
             data: {
                 twoFactorEnabled: false,
-                twoFactorSecret: null
+                twoFactorSecret: null,
             },
         });
     }
+
     async changePassword(userId: string, changePasswordDto: { currentPassword: string; newPassword: string }) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -213,16 +224,13 @@ export class AuthService {
             throw new UnauthorizedException('User not found');
         }
 
-        // Verify current password
         const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.passwordHash);
         if (!isPasswordValid) {
             throw new UnauthorizedException('Current password is incorrect');
         }
 
-        // Hash new password
         const newPasswordHash = await bcrypt.hash(changePasswordDto.newPassword, 12);
 
-        // Update password
         await this.prisma.user.update({
             where: { id: userId },
             data: { passwordHash: newPasswordHash },
@@ -240,16 +248,13 @@ export class AuthService {
             throw new UnauthorizedException('User not found');
         }
 
-        // Generate 2FA secret and QR code
         const secret = authenticator.generateSecret();
-        const qrCode = await toDataURL(`otpauth://totp/UzSecure:${user.email}?secret=${secret}`);
+        const qrCode = await toDataURL(`otpauth://totp/Bugify:${user.email}?secret=${secret}`);
 
-        // Generate backup codes
         const backupCodes = Array.from({ length: 10 }, () =>
-            Math.random().toString(36).substring(2, 10).toUpperCase()
+            Math.random().toString(36).substring(2, 10).toUpperCase(),
         );
 
-        // Save secret temporarily (not enabled yet until verified)
         await this.prisma.user.update({
             where: { id: userId },
             data: { twoFactorSecret: secret },
@@ -262,7 +267,6 @@ export class AuthService {
             message: 'Scan the QR code with your authenticator app',
         };
     }
-    // ... (rest of methods)
 
     async validateUser(userId: string) {
         const user = await this.prisma.user.findUnique({
@@ -283,22 +287,5 @@ export class AuthService {
         });
 
         return user;
-    }
-
-    private async generateTokens(userId: string, email: string, role: string) {
-        const payload = { sub: userId, email, role };
-
-        const accessToken = await this.jwtService.signAsync(payload);
-
-        // For refresh token, we'd typically use a separate service with different secret
-        // For now, using the same token with longer expiration
-        const refreshToken = await this.jwtService.signAsync(payload, {
-            expiresIn: '7d',
-        });
-
-        return {
-            accessToken,
-            refreshToken,
-        };
     }
 }

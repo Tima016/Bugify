@@ -10,6 +10,8 @@ exports.ProgramsModule = void 0;
 const common_1 = require("@nestjs/common");
 const programs_controller_1 = require("./programs.controller");
 const programs_service_1 = require("./programs.service");
+const program_visibility_service_1 = require("./program-visibility.service");
+const program_invite_service_1 = require("./program-invite.service");
 const prisma_module_1 = require("../prisma/prisma.module");
 let ProgramsModule = class ProgramsModule {
 };
@@ -18,8 +20,8 @@ exports.ProgramsModule = ProgramsModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         controllers: [programs_controller_1.ProgramsController],
-        providers: [programs_service_1.ProgramsService],
-        exports: [programs_service_1.ProgramsService],
+        providers: [programs_service_1.ProgramsService, program_visibility_service_1.ProgramVisibilityService, program_invite_service_1.ProgramInviteService],
+        exports: [programs_service_1.ProgramsService, program_visibility_service_1.ProgramVisibilityService, program_invite_service_1.ProgramInviteService],
     })
 ], ProgramsModule);
 //# sourceMappingURL=programs.module.js.map

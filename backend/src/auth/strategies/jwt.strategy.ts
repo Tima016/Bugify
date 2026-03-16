@@ -1,29 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(private authService: AuthService) {
+    constructor(
+        private authService: AuthService,
+        configService: ConfigService,
+    ) {
         super({
             jwtFromRequest: ExtractJwt.fromExtractors([
-                (request: any) => {
-                    return request?.cookies?.access_token;
-                },
+                // Primary: HttpOnly cookie
+                (request: any) => request?.cookies?.access_token,
+                // Fallback: Authorization header (for API clients)
+                ExtractJwt.fromAuthHeaderAsBearerToken(),
             ]),
             ignoreExpiration: false,
-            secretOrKey: process.env.JWT_SECRET || 'your-secret-key',
+            secretOrKey: configService.get('JWT_SECRET') || 'your-secret-key',
         });
     }
 
     async validate(payload: any) {
-        console.log('[JwtStrategy] Validating payload:', payload);
         const user = await this.authService.validateUser(payload.sub);
         if (!user) {
-            console.error('[JwtStrategy] User not found for ID:', payload.sub);
-        } else {
-            console.log('[JwtStrategy] User validated:', user.id);
+            throw new UnauthorizedException('User not found or session invalid');
         }
         return user;
     }

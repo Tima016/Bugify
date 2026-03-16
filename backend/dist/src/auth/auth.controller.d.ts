@@ -19,12 +19,11 @@ export declare class AuthController {
             companyId: string | null;
         };
     }>;
-    login(loginDto: LoginDto, res: Response): Promise<{
+    login(loginDto: LoginDto, req: Request, res: Response): Promise<{
         user: {
             id: string;
             email: string;
             username: string;
-            passwordHash: string;
             firstName: string | null;
             lastName: string | null;
             phoneNumber: string | null;
@@ -43,8 +42,6 @@ export declare class AuthController {
             kycStatus: Prisma.$Enums.KycStatus;
             kycDocuments: import("@prisma/client/runtime/library").JsonValue | null;
             twoFactorEnabled: boolean;
-            twoFactorSecret: string | null;
-            backupCodes: import("@prisma/client/runtime/library").JsonValue | null;
             preferredLanguage: string;
             timezone: string;
             notificationPreferences: import("@prisma/client/runtime/library").JsonValue | null;
@@ -53,6 +50,11 @@ export declare class AuthController {
             certifications: import("@prisma/client/runtime/library").JsonValue | null;
             lastLoginAt: Date | null;
             lastActiveAt: Date | null;
+            riskScore: number;
+            riskLevel: Prisma.$Enums.RiskLevel;
+            riskLockedAt: Date | null;
+            riskOverrideBy: string | null;
+            riskOverrideAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
             deletedAt: Date | null;
@@ -62,7 +64,7 @@ export declare class AuthController {
     refresh(req: Request, res: Response): Promise<{
         message: string;
     }>;
-    logout(res: Response): Promise<{
+    logout(req: Request, res: Response): Promise<{
         message: string;
     }>;
     changePassword(user: Prisma.User, changePasswordDto: {

@@ -18,6 +18,7 @@ export declare class ProgramsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         companyId: string;
         description: string;
         totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -68,6 +69,7 @@ export declare class ProgramsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         companyId: string;
         description: string;
         totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -107,6 +109,7 @@ export declare class ProgramsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         companyId: string;
         description: string;
         totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -143,6 +146,7 @@ export declare class ProgramsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         companyId: string;
         description: string;
         totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -179,6 +183,7 @@ export declare class ProgramsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         companyId: string;
         description: string;
         totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -219,6 +224,7 @@ export declare class ProgramsService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         companyId: string;
         description: string;
         totalPaidOut: import("@prisma/client/runtime/library").Decimal;

@@ -8,13 +8,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StorageModule = void 0;
 const common_1 = require("@nestjs/common");
+const bullmq_1 = require("@nestjs/bullmq");
 const storage_service_1 = require("./storage.service");
+const upload_controller_1 = require("./upload.controller");
 let StorageModule = class StorageModule {
 };
 exports.StorageModule = StorageModule;
 exports.StorageModule = StorageModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
+        imports: [
+            bullmq_1.BullModule.registerQueue({ name: 'malware-scan' }),
+        ],
+        controllers: [upload_controller_1.UploadController],
         providers: [storage_service_1.StorageService],
         exports: [storage_service_1.StorageService],
     })

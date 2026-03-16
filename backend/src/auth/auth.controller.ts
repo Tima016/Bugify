@@ -1,4 +1,5 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, UnauthorizedException, Res, Req } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, UnauthorizedException, Res, Req, Ip } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
@@ -7,6 +8,14 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GetUser } from './decorators/get-user.decorator';
 import * as Prisma from '@prisma/client';
 
+const COOKIE_OPTIONS_BASE = {
+    httpOnly: true,
+    sameSite: 'strict' as const,
+    path: '/',
+};
+
+// Strict rate limit for auth endpoints: 5 requests per 60 seconds
+@Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) { }
@@ -18,25 +27,30 @@ export class AuthController {
 
     @Post('login')
     @HttpCode(HttpStatus.OK)
-    async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-        const { user, accessToken, refreshToken } = await this.authService.login(loginDto);
+    async login(
+        @Body() loginDto: LoginDto,
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        // Extract real IP (behind NGINX proxy)
+        const clientIp = (req.headers['x-real-ip'] as string)
+            || (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+            || req.ip
+            || 'unknown';
 
-        // precise cookie settings
+        const { user, accessToken, refreshToken } = await this.authService.login(loginDto, clientIp);
+
         const isProd = process.env.NODE_ENV === 'production';
 
         res.cookie('access_token', accessToken, {
-            httpOnly: true,
+            ...COOKIE_OPTIONS_BASE,
             secure: isProd,
-            sameSite: 'strict',
-            path: '/',
-            maxAge: 15 * 60 * 1000, // 15 minutes
+            maxAge: 10 * 60 * 1000, // 10 minutes (matches access token expiry)
         });
 
         res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
+            ...COOKIE_OPTIONS_BASE,
             secure: isProd,
-            sameSite: 'strict',
-            path: '/',
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
@@ -56,18 +70,14 @@ export class AuthController {
         const isProd = process.env.NODE_ENV === 'production';
 
         res.cookie('access_token', tokens.accessToken, {
-            httpOnly: true,
+            ...COOKIE_OPTIONS_BASE,
             secure: isProd,
-            sameSite: 'strict',
-            path: '/',
-            maxAge: 15 * 60 * 1000,
+            maxAge: 10 * 60 * 1000,
         });
 
         res.cookie('refresh_token', tokens.refreshToken, {
-            httpOnly: true,
+            ...COOKIE_OPTIONS_BASE,
             secure: isProd,
-            sameSite: 'strict',
-            path: '/',
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
@@ -76,9 +86,14 @@ export class AuthController {
 
     @Post('logout')
     @HttpCode(HttpStatus.OK)
-    async logout(@Res({ passthrough: true }) res: Response) {
-        res.clearCookie('access_token');
-        res.clearCookie('refresh_token');
+    async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+        const refreshToken = req.cookies['refresh_token'];
+        if (refreshToken) {
+            await this.authService.logout(refreshToken);
+        }
+
+        res.clearCookie('access_token', { path: '/' });
+        res.clearCookie('refresh_token', { path: '/' });
         return { message: 'Logged out successfully' };
     }
 

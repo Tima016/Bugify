@@ -2,6 +2,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -43,6 +44,11 @@ model User {
   certifications          Json?
   lastLoginAt             DateTime?
   lastActiveAt            DateTime?
+  riskScore               Int       @default(0)
+  riskLevel               RiskLevel @default(LOW)
+  riskLockedAt            DateTime?
+  riskOverrideBy          String?
+  riskOverrideAt          DateTime?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   deletedAt               DateTime?
@@ -61,10 +67,14 @@ model User {
   leaderboardEntries     LeaderboardEntry[]
   achievements           Achievement[]
   webhooks               Webhook[]
+  statusTransitions      ReportStatusTransition[] @relation("StatusTransitions")
+  programInvitesReceived ProgramInvite[]     @relation("ProgramInvites")
+  programInvitesCreated  ProgramInvite[]     @relation("ProgramInvitesCreated")
 
   @@index([email])
   @@index([username])
   @@index([companyId])
+  @@index([role, createdAt])  // Composite: admin user queries
   @@map("users")
 }
 
@@ -93,8 +103,13 @@ model Company {
   totalPrograms         Int                @default(0)
   totalPaidOut          Decimal            @default(0) @db.Decimal(12, 2)
   averageResponseTime   Int?
+  domainVerifyToken     String?
+  domainVerifyStatus    DomainVerifyStatus @default(UNVERIFIED)
+  domainVerifiedAt      DateTime?
+  onboardingRiskScore   Int?               @default(0)
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
+  deletedAt             DateTime?          // Soft delete
 
   // Relations
   users           User[]
@@ -103,6 +118,7 @@ model Company {
   invoices        Invoice[]
   invitationCodes InvitationCode[]
 
+  @@index([verificationStatus])
   @@map("companies")
 }
 
@@ -168,15 +184,18 @@ model Program {
   teamMembers           Json?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+  deletedAt             DateTime?        // Soft delete
 
   // Relations
   company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   manager User?    @relation("ProgramManager", fields: [managedBy], references: [id])
   reports Report[]
+  invites ProgramInvite[]
 
   @@index([companyId])
   @@index([slug])
   @@index([status])
+  @@index([companyId, status])  // Composite: company dashboard queries
   @@map("programs")
 }
 
@@ -227,18 +246,22 @@ model Report {
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
   resolvedAt             DateTime?
+  deletedAt              DateTime?     // Soft delete
 
   // Relations
-  program    Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
-  researcher User      @relation("ResearcherReports", fields: [researcherId], references: [id])
-  comments   Comment[]
-  payments   Payment[]
+  program           Program                @relation(fields: [programId], references: [id], onDelete: Cascade)
+  researcher        User                   @relation("ResearcherReports", fields: [researcherId], references: [id])
+  comments          Comment[]
+  payments          Payment[]
+  statusTransitions ReportStatusTransition[]
 
   @@index([programId])
   @@index([researcherId])
   @@index([status])
   @@index([severity])
   @@index([reportNumber])
+  @@index([programId, status, severity])  // Composite: program dashboard queries
+  @@index([researcherId, createdAt])      // Composite: researcher history
   @@map("reports")
 }
 
@@ -521,6 +544,7 @@ model PayoutRequest {
   updatedAt      DateTime      @updatedAt
 
   researcher User @relation(fields: [researcherId], references: [id])
+  approvals  PayoutApproval[]
 
   @@map("payout_requests")
 }
@@ -625,4 +649,179 @@ model WebhookLog {
   @@index([webhookId])
   @@index([event])
   @@map("webhook_logs")
+}
+
+// ============================================
+// Report Status Transition — Audit Trail
+// Tracks every status change with who, when, and why
+// ============================================
+model ReportStatusTransition {
+  id          String       @id @default(uuid())
+  reportId    String
+  oldStatus   ReportStatus
+  newStatus   ReportStatus
+  changedBy   String       // userId of who changed it
+  reason      String?      // Optional justification
+  metadata    Json?        // Additional context (e.g., bounty amount on ACCEPTED)
+  createdAt   DateTime     @default(now())
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user   User   @relation("StatusTransitions", fields: [changedBy], references: [id])
+
+  @@index([reportId])
+  @@index([changedBy])
+  @@index([reportId, createdAt])
+  @@map("report_status_transitions")
+}
+
+// ============================================
+// Ledger Entry — Double-Entry Financial Accounting
+// Every financial operation creates exactly TWO entries:
+// a DEBIT from one account and a CREDIT to another.
+// ============================================
+model LedgerEntry {
+  id              String     @id @default(uuid())
+  transactionId   String     // Groups debit+credit pair (UUID)
+  accountId       String     // e.g., "escrow", "user_wallet:{userId}", "platform_fees"
+  type            LedgerType
+  amount          Decimal    @db.Decimal(12, 2)
+  currency        String     @default("USD")
+  referenceType   String     // e.g., "REPORT_PAYOUT", "PAYOUT_REQUEST", "FEE"
+  referenceId     String     // ID of the related entity (reportId, payoutRequestId)
+  description     String?
+  balanceAfter    Decimal?   @db.Decimal(12, 2) // Running balance snapshot
+  createdBy       String?    // userId or "system"
+  createdAt       DateTime   @default(now())
+
+  @@index([transactionId])
+  @@index([accountId])
+  @@index([referenceId])
+  @@index([accountId, createdAt])
+  @@map("ledger_entries")
+}
+
+enum LedgerType {
+  DEBIT
+  CREDIT
+}
+
+// ============================================
+// Program Invite — Private program access control
+// ============================================
+model ProgramInvite {
+  id            String              @id @default(uuid())
+  programId     String
+  researcherId  String?
+  email         String?
+  invitedBy     String
+  status        ProgramInviteStatus @default(PENDING)
+  expiresAt     DateTime?
+  acceptedAt    DateTime?
+  revokedAt     DateTime?
+  revokedBy     String?
+  revokedReason String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  program    Program @relation(fields: [programId], references: [id])
+  researcher User?   @relation("ProgramInvites", fields: [researcherId], references: [id])
+  inviter    User    @relation("ProgramInvitesCreated", fields: [invitedBy], references: [id])
+
+  @@unique([programId, researcherId])
+  @@unique([programId, email])
+  @@index([researcherId])
+  @@index([programId, status])
+  @@map("program_invites")
+}
+
+enum ProgramInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+// ============================================
+// Payout Approval — Dual-admin approval for high-value payouts
+// ============================================
+model PayoutApproval {
+  id         String   @id @default(uuid())
+  payoutId   String
+  approvedBy String
+  createdAt  DateTime @default(now())
+
+  payout PayoutRequest @relation(fields: [payoutId], references: [id])
+
+  @@unique([payoutId, approvedBy])
+  @@index([payoutId])
+  @@map("payout_approvals")
+}
+
+// ============================================
+// Security Alert — Fraud detection & incident tracking
+// ============================================
+model SecurityAlert {
+  id           String         @id @default(uuid())
+  category     AlertCategory
+  severity     AlertSeverity
+  title        String
+  description  String
+  targetUserId String?        // User being flagged (if applicable)
+  sourceIp     String?
+  metadata     Json?          // Signal-specific data (scores, evidence)
+  status       AlertStatus    @default(OPEN)
+  resolvedBy   String?
+  resolvedAt   DateTime?
+  cooldownKey  String?        // Dedup key for cooldown logic
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([severity])
+  @@index([category])
+  @@index([targetUserId])
+  @@index([status, severity])
+  @@index([cooldownKey, createdAt])
+  @@map("security_alerts")
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertCategory {
+  MULTI_ACCOUNT
+  FAKE_FARMING
+  LEADERBOARD_MANIPULATION
+  PAYMENT_FRAUD
+  INSIDER_THREAT
+  BRUTEFORCE
+  MALWARE
+  RATE_LIMIT_ABUSE
+  GRAPHQL_ABUSE
+  SYSTEM
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  INVESTIGATING
+  RESOLVED
+  FALSE_POSITIVE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DomainVerifyStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  FAILED
 }

@@ -41,20 +41,26 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var AuthService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
-const jwt_1 = require("@nestjs/jwt");
 const prisma_service_1 = require("../prisma/prisma.service");
+const token_service_1 = require("./services/token.service");
+const login_guard_service_1 = require("./services/login-guard.service");
 const bcrypt = __importStar(require("bcrypt"));
 const otplib_1 = require("otplib");
 const qrcode_1 = require("qrcode");
-let AuthService = class AuthService {
+const DUMMY_HASH = '$2b$12$LJ3m4ys3Rl5pJrSQJxN5/.D0Fq1FcOYqR3VxBwL7MhXn8JVAo3UW2';
+let AuthService = AuthService_1 = class AuthService {
     prisma;
-    jwtService;
-    constructor(prisma, jwtService) {
+    tokenService;
+    loginGuardService;
+    logger = new common_1.Logger(AuthService_1.name);
+    constructor(prisma, tokenService, loginGuardService) {
         this.prisma = prisma;
-        this.jwtService = jwtService;
+        this.tokenService = tokenService;
+        this.loginGuardService = loginGuardService;
     }
     async register(registerDto) {
         const { email, username, password, firstName, lastName, role, companyName } = registerDto;
@@ -85,8 +91,8 @@ let AuthService = class AuthService {
                     data: {
                         companyName: companyName,
                         legalName: companyName,
-                        verificationStatus: 'PENDING'
-                    }
+                        verificationStatus: 'PENDING',
+                    },
                 });
                 companyId = company.id;
             }
@@ -98,7 +104,7 @@ let AuthService = class AuthService {
                     firstName,
                     lastName,
                     role: role || 'RESEARCHER',
-                    companyId
+                    companyId,
                 },
                 select: {
                     id: true,
@@ -112,25 +118,32 @@ let AuthService = class AuthService {
                 },
             });
         });
-        const tokens = await this.generateTokens(user.id, user.email, user.role);
-        return {
-            user,
-            ...tokens,
-        };
+        const tokens = await this.tokenService.generateTokenPair(user.id, user.email, user.role);
+        return { user, ...tokens };
     }
-    async login(loginDto) {
+    async login(loginDto, clientIp) {
         const { emailOrUsername, password, twoFactorCode } = loginDto;
+        const ipLock = await this.loginGuardService.isLockedOut(clientIp);
+        if (ipLock.locked) {
+            throw new common_1.ForbiddenException(`Account locked due to too many failed attempts. Try again after ${ipLock.endsAt?.toISOString()}`);
+        }
         const user = await this.prisma.user.findFirst({
             where: {
                 OR: [{ email: emailOrUsername }, { username: emailOrUsername }],
             },
         });
-        if (!user) {
+        const hashToCompare = user?.passwordHash || DUMMY_HASH;
+        const isPasswordValid = await bcrypt.compare(password, hashToCompare);
+        if (!user || !isPasswordValid) {
+            await this.loginGuardService.recordFailedAttempt(clientIp, user?.id);
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
-        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isPasswordValid) {
-            throw new common_1.UnauthorizedException('Invalid credentials');
+        const userLock = await this.loginGuardService.isLockedOut(user.id);
+        if (userLock.locked) {
+            throw new common_1.ForbiddenException(`Account locked due to too many failed attempts. Try again later.`);
+        }
+        if (user.isBanned) {
+            throw new common_1.ForbiddenException('Account is banned');
         }
         if (user.twoFactorEnabled) {
             if (!twoFactorCode) {
@@ -138,44 +151,31 @@ let AuthService = class AuthService {
             }
             const isValid = await this.verifyTwoFactorCode(twoFactorCode, user.id);
             if (!isValid) {
+                await this.loginGuardService.recordFailedAttempt(clientIp, user.id);
                 throw new common_1.UnauthorizedException('Invalid 2FA code');
             }
         }
+        await this.loginGuardService.clearAttempts(clientIp, user.id);
         await this.prisma.user.update({
             where: { id: user.id },
             data: { lastLoginAt: new Date() },
         });
-        const tokens = await this.generateTokens(user.id, user.email, user.role);
-        return {
-            user,
-            ...tokens,
-        };
+        const tokens = await this.tokenService.generateTokenPair(user.id, user.email, user.role);
+        const { passwordHash, twoFactorSecret, backupCodes, ...safeUser } = user;
+        return { user: safeUser, ...tokens };
     }
     async refreshTokens(refreshToken) {
-        try {
-            const payload = await this.jwtService.verifyAsync(refreshToken);
-            const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-            if (!user) {
-                throw new common_1.UnauthorizedException('User not found');
-            }
-            return this.generateTokens(user.id, user.email, user.role);
-        }
-        catch (e) {
-            throw new common_1.UnauthorizedException('Invalid refresh token');
-        }
+        return this.tokenService.rotateRefreshToken(refreshToken);
     }
-    async generateTwoFactorSecret(user) {
-        const secret = otplib_1.authenticator.generateSecret();
-        const otpauthUrl = otplib_1.authenticator.keyuri(user.email, 'UzSecure', secret);
-        await this.prisma.user.update({
-            where: { id: user.id },
-            data: { twoFactorSecret: secret },
-        });
-        const qrCodeUrl = await (0, qrcode_1.toDataURL)(otpauthUrl);
-        return {
-            secret,
-            qrCodeUrl,
-        };
+    async logout(refreshToken) {
+        try {
+            const payload = await this.tokenService['jwtService'].verifyAsync(refreshToken);
+            if (payload.familyId) {
+                await this.tokenService.revokeTokenFamily(payload.familyId);
+            }
+        }
+        catch {
+        }
     }
     async verifyTwoFactorCode(code, userId) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -198,7 +198,7 @@ let AuthService = class AuthService {
             where: { id: userId },
             data: {
                 twoFactorEnabled: false,
-                twoFactorSecret: null
+                twoFactorSecret: null,
             },
         });
     }
@@ -228,7 +228,7 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException('User not found');
         }
         const secret = otplib_1.authenticator.generateSecret();
-        const qrCode = await (0, qrcode_1.toDataURL)(`otpauth://totp/UzSecure:${user.email}?secret=${secret}`);
+        const qrCode = await (0, qrcode_1.toDataURL)(`otpauth://totp/Bugify:${user.email}?secret=${secret}`);
         const backupCodes = Array.from({ length: 10 }, () => Math.random().toString(36).substring(2, 10).toUpperCase());
         await this.prisma.user.update({
             where: { id: userId },
@@ -260,22 +260,12 @@ let AuthService = class AuthService {
         });
         return user;
     }
-    async generateTokens(userId, email, role) {
-        const payload = { sub: userId, email, role };
-        const accessToken = await this.jwtService.signAsync(payload);
-        const refreshToken = await this.jwtService.signAsync(payload, {
-            expiresIn: '7d',
-        });
-        return {
-            accessToken,
-            refreshToken,
-        };
-    }
 };
 exports.AuthService = AuthService;
-exports.AuthService = AuthService = __decorate([
+exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        jwt_1.JwtService])
+        token_service_1.TokenService,
+        login_guard_service_1.LoginGuardService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

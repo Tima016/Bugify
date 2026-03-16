@@ -22,8 +22,8 @@ export declare class CommentsService {
         attachments: import("@prisma/client/runtime/library").JsonValue | null;
         reportId: string;
         userId: string;
-        parentCommentId: string | null;
         content: string;
+        parentCommentId: string | null;
         isInternal: boolean;
         visibility: import(".prisma/client").$Enums.CommentVisibility;
         edited: boolean;
@@ -52,8 +52,8 @@ export declare class CommentsService {
             attachments: import("@prisma/client/runtime/library").JsonValue | null;
             reportId: string;
             userId: string;
-            parentCommentId: string | null;
             content: string;
+            parentCommentId: string | null;
             isInternal: boolean;
             visibility: import(".prisma/client").$Enums.CommentVisibility;
             edited: boolean;
@@ -68,8 +68,8 @@ export declare class CommentsService {
         attachments: import("@prisma/client/runtime/library").JsonValue | null;
         reportId: string;
         userId: string;
-        parentCommentId: string | null;
         content: string;
+        parentCommentId: string | null;
         isInternal: boolean;
         visibility: import(".prisma/client").$Enums.CommentVisibility;
         edited: boolean;
@@ -84,8 +84,8 @@ export declare class CommentsService {
         attachments: import("@prisma/client/runtime/library").JsonValue | null;
         reportId: string;
         userId: string;
-        parentCommentId: string | null;
         content: string;
+        parentCommentId: string | null;
         isInternal: boolean;
         visibility: import(".prisma/client").$Enums.CommentVisibility;
         edited: boolean;
@@ -100,8 +100,8 @@ export declare class CommentsService {
         attachments: import("@prisma/client/runtime/library").JsonValue | null;
         reportId: string;
         userId: string;
-        parentCommentId: string | null;
         content: string;
+        parentCommentId: string | null;
         isInternal: boolean;
         visibility: import(".prisma/client").$Enums.CommentVisibility;
         edited: boolean;

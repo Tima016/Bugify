@@ -6,11 +6,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const nestjs_pino_1 = require("nestjs-pino");
 const app_module_1 = require("./app.module");
 const helmet_1 = __importDefault(require("helmet"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 async function bootstrap() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    const app = await core_1.NestFactory.create(app_module_1.AppModule, { bufferLogs: true });
+    const logger = new common_1.Logger('Bootstrap');
+    app.useLogger(app.get(nestjs_pino_1.Logger));
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.set('trust proxy', 1);
     app.use((0, helmet_1.default)({
         contentSecurityPolicy: {
             directives: {
@@ -31,44 +36,51 @@ async function bootstrap() {
     app.enableCors({
         origin: process.env.FRONTEND_URL || 'http://localhost:3000',
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         transform: true,
+        forbidNonWhitelisted: true,
     }));
     app.setGlobalPrefix('api');
-    const config = new swagger_1.DocumentBuilder()
-        .setTitle('UzSecure Bug Bounty Platform API')
-        .setDescription('Enterprise Bug Bounty Platform - Comprehensive API Documentation')
-        .setVersion('1.0.0')
-        .addBearerAuth({
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-    }, 'JWT-auth')
-        .addTag('auth', 'Authentication & Authorization')
-        .addTag('users', 'User Management')
-        .addTag('programs', 'Bug Bounty Programs')
-        .addTag('reports', 'Vulnerability Reports')
-        .addTag('comments', 'Report Comments')
-        .addTag('payments', 'Payment & Payout Management')
-        .addTag('companies', 'Company Management')
-        .addTag('admin', 'Admin Panel')
-        .addTag('notifications', 'Real-time Notifications')
-        .build();
-    const document = swagger_1.SwaggerModule.createDocument(app, config);
-    swagger_1.SwaggerModule.setup('api/docs', app, document, {
-        swaggerOptions: {
-            persistAuthorization: true,
-        },
-    });
+    if (process.env.NODE_ENV !== 'production') {
+        const config = new swagger_1.DocumentBuilder()
+            .setTitle('Bugify Bug Bounty Platform API')
+            .setDescription('Enterprise Bug Bounty Platform - API Documentation')
+            .setVersion('1.0.0')
+            .addBearerAuth({
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+            name: 'JWT',
+            description: 'Enter JWT token',
+            in: 'header',
+        }, 'JWT-auth')
+            .addTag('auth', 'Authentication & Authorization')
+            .addTag('users', 'User Management')
+            .addTag('programs', 'Bug Bounty Programs')
+            .addTag('reports', 'Vulnerability Reports')
+            .addTag('comments', 'Report Comments')
+            .addTag('payments', 'Payment & Payout Management')
+            .addTag('companies', 'Company Management')
+            .addTag('admin', 'Admin Panel')
+            .addTag('notifications', 'Real-time Notifications')
+            .build();
+        const document = swagger_1.SwaggerModule.createDocument(app, config);
+        swagger_1.SwaggerModule.setup('api/docs', app, document, {
+            swaggerOptions: {
+                persistAuthorization: true,
+            },
+        });
+        logger.log('Swagger documentation available at /api/docs');
+    }
+    app.enableShutdownHooks();
     const port = process.env.PORT || 3001;
     await app.listen(port);
-    console.log(`🚀 Backend server running on http://localhost:${port}`);
-    console.log(`📚 API Documentation available at http://localhost:${port}/api/docs`);
+    logger.log(`Bugify API running on port ${port}`);
+    logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

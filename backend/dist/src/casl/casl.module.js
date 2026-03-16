@@ -8,15 +8,16 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CaslModule = void 0;
 const common_1 = require("@nestjs/common");
-const casl_ability_factory_1 = require("./casl-ability.factory");
+const ability_factory_1 = require("./ability.factory");
+const policies_guard_1 = require("./policies.guard");
 let CaslModule = class CaslModule {
 };
 exports.CaslModule = CaslModule;
 exports.CaslModule = CaslModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
-        providers: [casl_ability_factory_1.CaslAbilityFactory],
-        exports: [casl_ability_factory_1.CaslAbilityFactory],
+        providers: [ability_factory_1.AbilityFactory, policies_guard_1.PoliciesGuard],
+        exports: [ability_factory_1.AbilityFactory, policies_guard_1.PoliciesGuard],
     })
 ], CaslModule);
 //# sourceMappingURL=casl.module.js.map

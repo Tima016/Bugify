@@ -27,6 +27,7 @@ export declare class InvitationService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            deletedAt: Date | null;
             companyName: string;
             taxId: string | null;
             stripeCustomerId: string | null;
@@ -49,6 +50,10 @@ export declare class InvitationService {
             totalPrograms: number;
             totalPaidOut: import("@prisma/client/runtime/library").Decimal;
             averageResponseTime: number | null;
+            domainVerifyToken: string | null;
+            domainVerifyStatus: import(".prisma/client").$Enums.DomainVerifyStatus;
+            domainVerifiedAt: Date | null;
+            onboardingRiskScore: number | null;
         };
     } & {
         id: string;

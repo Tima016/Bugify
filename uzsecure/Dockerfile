@@ -1,39 +1,46 @@
-# Build stage
+# ============================================
+# Bugify Frontend — Production Dockerfile
+# Multi-stage, non-root
+# ============================================
+
+# ---------- Stage 1: Build ----------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 
-# Install dependencies
 RUN npm ci
 
-# Copy source code
 COPY . .
 
-# Build Next.js application
 RUN npm run build
 
-# Production stage
+# ---------- Stage 2: Production ----------
 FROM node:20-alpine
+
+RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production
+RUN npm ci --only=production && npm cache clean --force
 
-# Copy built application from builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/next-i18next.config.js ./
 
-# Expose port
+# Security: run as non-root
+RUN chown -R node:node /app
+USER node
+
 EXPOSE 3000
 
-# Start Next.js
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["node", "-e", "require('http').get('http://localhost:3000', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+
+ENTRYPOINT ["dumb-init", "--"]
+
 CMD ["npm", "start"]

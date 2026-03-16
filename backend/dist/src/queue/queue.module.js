@@ -20,7 +20,7 @@ exports.QueueModule = QueueModule = __decorate([
             bullmq_1.BullModule.forRootAsync({
                 useFactory: (configService) => {
                     const logger = new common_1.Logger('QueueModule');
-                    logger.log('Initializing Bull queues with Redis connection...');
+                    logger.log('Initializing Bull queues (producer-only)...');
                     return {
                         connection: {
                             host: configService.get('REDIS_HOST') || 'localhost',
@@ -35,7 +35,7 @@ exports.QueueModule = QueueModule = __decorate([
                 },
                 inject: [config_1.ConfigService],
             }),
-            bullmq_1.BullModule.registerQueue({ name: 'email' }, { name: 'notifications' }, { name: 'payments' }),
+            bullmq_1.BullModule.registerQueue({ name: 'email' }, { name: 'notifications' }, { name: 'payments' }, { name: 'achievements' }, { name: 'webhooks' }, { name: 'malware-scan' }, { name: 'alerts' }, { name: 'scheduled-jobs' }),
         ],
         exports: [bullmq_1.BullModule],
     })

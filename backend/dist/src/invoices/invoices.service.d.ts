@@ -9,9 +9,9 @@ export declare class InvoicesService {
         companyId: string;
         status: import(".prisma/client").$Enums.InvoiceStatus;
         amount: import("@prisma/client/runtime/library").Decimal;
+        items: import("@prisma/client/runtime/library").JsonValue;
         paidAt: Date | null;
         dueDate: Date;
-        items: import("@prisma/client/runtime/library").JsonValue;
     }>;
     generatePdf(invoiceId: string): Promise<Buffer>;
 }

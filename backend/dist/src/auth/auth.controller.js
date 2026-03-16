@@ -47,11 +47,17 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
+const throttler_1 = require("@nestjs/throttler");
 const auth_service_1 = require("./auth.service");
 const auth_dto_1 = require("./dto/auth.dto");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const get_user_decorator_1 = require("./decorators/get-user.decorator");
 const Prisma = __importStar(require("@prisma/client"));
+const COOKIE_OPTIONS_BASE = {
+    httpOnly: true,
+    sameSite: 'strict',
+    path: '/',
+};
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -60,21 +66,21 @@ let AuthController = class AuthController {
     async register(registerDto) {
         return this.authService.register(registerDto);
     }
-    async login(loginDto, res) {
-        const { user, accessToken, refreshToken } = await this.authService.login(loginDto);
+    async login(loginDto, req, res) {
+        const clientIp = req.headers['x-real-ip']
+            || req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+            || req.ip
+            || 'unknown';
+        const { user, accessToken, refreshToken } = await this.authService.login(loginDto, clientIp);
         const isProd = process.env.NODE_ENV === 'production';
         res.cookie('access_token', accessToken, {
-            httpOnly: true,
+            ...COOKIE_OPTIONS_BASE,
             secure: isProd,
-            sameSite: 'strict',
-            path: '/',
-            maxAge: 15 * 60 * 1000,
+            maxAge: 10 * 60 * 1000,
         });
         res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
+            ...COOKIE_OPTIONS_BASE,
             secure: isProd,
-            sameSite: 'strict',
-            path: '/',
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
         return { user };
@@ -87,24 +93,24 @@ let AuthController = class AuthController {
         const tokens = await this.authService.refreshTokens(refreshToken);
         const isProd = process.env.NODE_ENV === 'production';
         res.cookie('access_token', tokens.accessToken, {
-            httpOnly: true,
+            ...COOKIE_OPTIONS_BASE,
             secure: isProd,
-            sameSite: 'strict',
-            path: '/',
-            maxAge: 15 * 60 * 1000,
+            maxAge: 10 * 60 * 1000,
         });
         res.cookie('refresh_token', tokens.refreshToken, {
-            httpOnly: true,
+            ...COOKIE_OPTIONS_BASE,
             secure: isProd,
-            sameSite: 'strict',
-            path: '/',
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
         return { message: 'Tokens refreshed' };
     }
-    async logout(res) {
-        res.clearCookie('access_token');
-        res.clearCookie('refresh_token');
+    async logout(req, res) {
+        const refreshToken = req.cookies['refresh_token'];
+        if (refreshToken) {
+            await this.authService.logout(refreshToken);
+        }
+        res.clearCookie('access_token', { path: '/' });
+        res.clearCookie('refresh_token', { path: '/' });
         return { message: 'Logged out successfully' };
     }
     async changePassword(user, changePasswordDto) {
@@ -130,9 +136,10 @@ __decorate([
     (0, common_1.Post)('login'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [auth_dto_1.LoginDto, Object]),
+    __metadata("design:paramtypes", [auth_dto_1.LoginDto, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
@@ -147,9 +154,10 @@ __decorate([
 __decorate([
     (0, common_1.Post)('logout'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Res)({ passthrough: true })),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
 __decorate([
@@ -181,6 +189,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "disableTwoFactor", null);
 exports.AuthController = AuthController = __decorate([
+    (0, throttler_1.Throttle)({ default: { limit: 5, ttl: 60000 } }),
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])
 ], AuthController);

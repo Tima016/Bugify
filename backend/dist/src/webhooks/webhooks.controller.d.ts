@@ -15,13 +15,13 @@ export declare class WebhooksController {
     getWebhookLogs(id: string): Promise<{
         error: string | null;
         id: string;
-        success: boolean;
-        webhookId: string;
         event: string;
         payload: import("@prisma/client/runtime/library").JsonValue;
         response: import("@prisma/client/runtime/library").JsonValue | null;
         statusCode: number | null;
+        success: boolean;
         attemptedAt: Date;
+        webhookId: string;
     }[]>;
     deleteWebhook(id: string, req: any): Promise<{
         id: string;

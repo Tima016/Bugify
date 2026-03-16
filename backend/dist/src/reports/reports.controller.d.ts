@@ -16,6 +16,7 @@ export declare class ReportsController {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                deletedAt: Date | null;
                 companyName: string;
                 taxId: string | null;
                 stripeCustomerId: string | null;
@@ -38,11 +39,16 @@ export declare class ReportsController {
                 totalPrograms: number;
                 totalPaidOut: import("@prisma/client/runtime/library").Decimal;
                 averageResponseTime: number | null;
+                domainVerifyToken: string | null;
+                domainVerifyStatus: import(".prisma/client").$Enums.DomainVerifyStatus;
+                domainVerifiedAt: Date | null;
+                onboardingRiskScore: number | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            deletedAt: Date | null;
             companyId: string;
             description: string;
             totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -79,6 +85,7 @@ export declare class ReportsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         description: string;
         status: import(".prisma/client").$Enums.ReportStatus;
         reportNumber: string;
@@ -144,6 +151,7 @@ export declare class ReportsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         description: string;
         status: import(".prisma/client").$Enums.ReportStatus;
         reportNumber: string;
@@ -200,6 +208,7 @@ export declare class ReportsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         description: string;
         status: import(".prisma/client").$Enums.ReportStatus;
         reportNumber: string;
@@ -259,6 +268,7 @@ export declare class ReportsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         description: string;
         status: import(".prisma/client").$Enums.ReportStatus;
         reportNumber: string;
@@ -320,8 +330,8 @@ export declare class ReportsController {
             attachments: import("@prisma/client/runtime/library").JsonValue | null;
             reportId: string;
             userId: string;
-            parentCommentId: string | null;
             content: string;
+            parentCommentId: string | null;
             isInternal: boolean;
             visibility: import(".prisma/client").$Enums.CommentVisibility;
             edited: boolean;
@@ -342,6 +352,7 @@ export declare class ReportsController {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                deletedAt: Date | null;
                 companyName: string;
                 taxId: string | null;
                 stripeCustomerId: string | null;
@@ -364,11 +375,16 @@ export declare class ReportsController {
                 totalPrograms: number;
                 totalPaidOut: import("@prisma/client/runtime/library").Decimal;
                 averageResponseTime: number | null;
+                domainVerifyToken: string | null;
+                domainVerifyStatus: import(".prisma/client").$Enums.DomainVerifyStatus;
+                domainVerifiedAt: Date | null;
+                onboardingRiskScore: number | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            deletedAt: Date | null;
             companyId: string;
             description: string;
             totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -405,6 +421,7 @@ export declare class ReportsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         description: string;
         status: import(".prisma/client").$Enums.ReportStatus;
         reportNumber: string;
@@ -458,6 +475,7 @@ export declare class ReportsController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            deletedAt: Date | null;
             companyId: string;
             description: string;
             totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -494,6 +512,7 @@ export declare class ReportsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         description: string;
         status: import(".prisma/client").$Enums.ReportStatus;
         reportNumber: string;

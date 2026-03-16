@@ -10,6 +10,8 @@ exports.AdminModule = void 0;
 const common_1 = require("@nestjs/common");
 const admin_controller_1 = require("./admin.controller");
 const admin_service_1 = require("./admin.service");
+const super_admin_controller_1 = require("./super-admin.controller");
+const super_admin_guard_1 = require("./guards/super-admin.guard");
 const prisma_module_1 = require("../prisma/prisma.module");
 let AdminModule = class AdminModule {
 };
@@ -17,8 +19,9 @@ exports.AdminModule = AdminModule;
 exports.AdminModule = AdminModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
-        controllers: [admin_controller_1.AdminController],
-        providers: [admin_service_1.AdminService]
+        controllers: [admin_controller_1.AdminController, super_admin_controller_1.SuperAdminController],
+        providers: [admin_service_1.AdminService, super_admin_guard_1.SuperAdminGuard],
+        exports: [super_admin_guard_1.SuperAdminGuard],
     })
 ], AdminModule);
 //# sourceMappingURL=admin.module.js.map

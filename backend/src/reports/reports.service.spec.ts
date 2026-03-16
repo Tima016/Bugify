@@ -86,7 +86,7 @@ describe('ReportsService', () => {
                 vulnerabilityType: 'SQLi',
                 impactAnalysis: 'Critical',
                 reproductionSteps: 'Steps...',
-                discoveredDate: new Date(),
+                discoveredDate: new Date().toISOString(),
                 severity: 'CRITICAL',
             };
 

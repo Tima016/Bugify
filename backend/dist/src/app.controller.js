@@ -21,6 +21,13 @@ let AppController = class AppController {
     getHello() {
         return this.appService.getHello();
     }
+    healthCheck() {
+        return {
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            service: 'bugify-api',
+        };
+    }
     async getPlatformStats() {
         return this.appService.getPlatformStats();
     }
@@ -28,11 +35,18 @@ let AppController = class AppController {
 exports.AppController = AppController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Health check' }),
+    (0, swagger_1.ApiOperation)({ summary: 'API root' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", String)
 ], AppController.prototype, "getHello", null);
+__decorate([
+    (0, common_1.Get)('health'),
+    (0, swagger_1.ApiOperation)({ summary: 'Health check for load balancers and Docker' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "healthCheck", null);
 __decorate([
     (0, common_1.Get)('platform/stats'),
     (0, swagger_1.ApiOperation)({ summary: 'Get platform statistics' }),

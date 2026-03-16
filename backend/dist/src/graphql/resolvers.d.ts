@@ -8,6 +8,7 @@ export declare class ProgramResolver {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         companyId: string;
         description: string;
         totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -44,6 +45,7 @@ export declare class ProgramResolver {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         companyId: string;
         description: string;
         totalPaidOut: import("@prisma/client/runtime/library").Decimal;
@@ -84,6 +86,7 @@ export declare class ReportResolver {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         description: string;
         status: import(".prisma/client").$Enums.ReportStatus;
         reportNumber: string;
@@ -131,6 +134,7 @@ export declare class ReportResolver {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        deletedAt: Date | null;
         description: string;
         status: import(".prisma/client").$Enums.ReportStatus;
         reportNumber: string;

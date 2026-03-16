@@ -1,3 +1,7 @@
+// ============================================
+// Queue Module — Producer Only (API Side)
+// Processors run in the standalone Worker container
+// ============================================
 import { Module, Global, Logger } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
@@ -8,7 +12,7 @@ import { ConfigService } from '@nestjs/config';
         BullModule.forRootAsync({
             useFactory: (configService: ConfigService) => {
                 const logger = new Logger('QueueModule');
-                logger.log('Initializing Bull queues with Redis connection...');
+                logger.log('Initializing Bull queues (producer-only)...');
                 return {
                     connection: {
                         host: configService.get('REDIS_HOST') || 'localhost',
@@ -27,6 +31,11 @@ import { ConfigService } from '@nestjs/config';
             { name: 'email' },
             { name: 'notifications' },
             { name: 'payments' },
+            { name: 'achievements' },
+            { name: 'webhooks' },
+            { name: 'malware-scan' },
+            { name: 'alerts' },
+            { name: 'scheduled-jobs' },
         ),
     ],
     exports: [BullModule],

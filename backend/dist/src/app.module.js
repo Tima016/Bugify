@@ -10,7 +10,9 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const throttler_1 = require("@nestjs/throttler");
+const cache_manager_1 = require("@nestjs/cache-manager");
 const core_1 = require("@nestjs/core");
+const nestjs_pino_1 = require("nestjs-pino");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const prisma_module_1 = require("./prisma/prisma.module");
@@ -39,7 +41,14 @@ const comments_module_1 = require("./comments/comments.module");
 const invoices_module_1 = require("./invoices/invoices.module");
 const companies_module_1 = require("./companies/companies.module");
 const admin_module_1 = require("./admin/admin.module");
+const metrics_module_1 = require("./common/metrics/metrics.module");
+const security_module_1 = require("./common/security/security.module");
+const correlation_id_middleware_1 = require("./common/middleware/correlation-id.middleware");
+const http_logging_interceptor_1 = require("./common/interceptors/http-logging.interceptor");
 let AppModule = class AppModule {
+    configure(consumer) {
+        consumer.apply(correlation_id_middleware_1.CorrelationIdMiddleware).forRoutes('*');
+    }
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
@@ -47,6 +56,24 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
+            }),
+            nestjs_pino_1.LoggerModule.forRoot({
+                pinoHttp: {
+                    transport: process.env.NODE_ENV !== 'production'
+                        ? { target: 'pino-pretty', options: { colorize: true } }
+                        : undefined,
+                    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+                    redact: ['req.headers.authorization', 'req.headers.cookie'],
+                },
+            }),
+            cache_manager_1.CacheModule.registerAsync({
+                isGlobal: true,
+                imports: [config_1.ConfigModule],
+                useFactory: (configService) => ({
+                    store: 'memory',
+                    ttl: 300000,
+                }),
+                inject: [config_1.ConfigService],
             }),
             throttler_1.ThrottlerModule.forRoot([{
                     ttl: 60000,
@@ -78,6 +105,8 @@ exports.AppModule = AppModule = __decorate([
             invoices_module_1.InvoicesModule,
             companies_module_1.CompaniesModule,
             admin_module_1.AdminModule,
+            metrics_module_1.MetricsModule,
+            security_module_1.SecurityModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [
@@ -85,6 +114,10 @@ exports.AppModule = AppModule = __decorate([
             {
                 provide: core_1.APP_GUARD,
                 useClass: throttler_1.ThrottlerGuard,
+            },
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: http_logging_interceptor_1.HttpLoggingInterceptor,
             },
         ],
     })

@@ -72,9 +72,9 @@ export declare class UzPaymentService {
         retryCount: number;
         notes: string | null;
         reportId: string;
-        paymentDetails: import("@prisma/client/runtime/library").JsonValue | null;
         transactionId: string | null;
         invoiceNumber: string | null;
+        paymentDetails: import("@prisma/client/runtime/library").JsonValue | null;
         invoiceUrl: string | null;
         initiatedBy: string | null;
         approvedBy: string | null;

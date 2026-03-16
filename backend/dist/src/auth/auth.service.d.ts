@@ -1,10 +1,13 @@
-import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { TokenService } from './services/token.service';
+import { LoginGuardService } from './services/login-guard.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 export declare class AuthService {
     private prisma;
-    private jwtService;
-    constructor(prisma: PrismaService, jwtService: JwtService);
+    private tokenService;
+    private loginGuardService;
+    private readonly logger;
+    constructor(prisma: PrismaService, tokenService: TokenService, loginGuardService: LoginGuardService);
     register(registerDto: RegisterDto): Promise<{
         accessToken: string;
         refreshToken: string;
@@ -19,14 +22,13 @@ export declare class AuthService {
             companyId: string | null;
         };
     }>;
-    login(loginDto: LoginDto): Promise<{
+    login(loginDto: LoginDto, clientIp: string): Promise<{
         accessToken: string;
         refreshToken: string;
         user: {
             id: string;
             email: string;
             username: string;
-            passwordHash: string;
             firstName: string | null;
             lastName: string | null;
             phoneNumber: string | null;
@@ -45,8 +47,6 @@ export declare class AuthService {
             kycStatus: import(".prisma/client").$Enums.KycStatus;
             kycDocuments: import("@prisma/client/runtime/library").JsonValue | null;
             twoFactorEnabled: boolean;
-            twoFactorSecret: string | null;
-            backupCodes: import("@prisma/client/runtime/library").JsonValue | null;
             preferredLanguage: string;
             timezone: string;
             notificationPreferences: import("@prisma/client/runtime/library").JsonValue | null;
@@ -55,6 +55,11 @@ export declare class AuthService {
             certifications: import("@prisma/client/runtime/library").JsonValue | null;
             lastLoginAt: Date | null;
             lastActiveAt: Date | null;
+            riskScore: number;
+            riskLevel: import(".prisma/client").$Enums.RiskLevel;
+            riskLockedAt: Date | null;
+            riskOverrideBy: string | null;
+            riskOverrideAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
             deletedAt: Date | null;
@@ -65,13 +70,7 @@ export declare class AuthService {
         accessToken: string;
         refreshToken: string;
     }>;
-    generateTwoFactorSecret(user: {
-        id: string;
-        email: string;
-    }): Promise<{
-        secret: string;
-        qrCodeUrl: any;
-    }>;
+    logout(refreshToken: string): Promise<void>;
     verifyTwoFactorCode(code: string, userId: string): Promise<boolean>;
     enableTwoFactor(userId: string): Promise<void>;
     disableTwoFactor(userId: string): Promise<void>;
@@ -100,5 +99,4 @@ export declare class AuthService {
         twoFactorEnabled: boolean;
         companyId: string | null;
     } | null>;
-    private generateTokens;
 }

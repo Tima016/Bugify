@@ -84,6 +84,11 @@ export declare class AdminController {
         certifications: import("@prisma/client/runtime/library").JsonValue | null;
         lastLoginAt: Date | null;
         lastActiveAt: Date | null;
+        riskScore: number;
+        riskLevel: import(".prisma/client").$Enums.RiskLevel;
+        riskLockedAt: Date | null;
+        riskOverrideBy: string | null;
+        riskOverrideAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
@@ -122,6 +127,11 @@ export declare class AdminController {
         certifications: import("@prisma/client/runtime/library").JsonValue | null;
         lastLoginAt: Date | null;
         lastActiveAt: Date | null;
+        riskScore: number;
+        riskLevel: import(".prisma/client").$Enums.RiskLevel;
+        riskLockedAt: Date | null;
+        riskOverrideBy: string | null;
+        riskOverrideAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
@@ -165,6 +175,11 @@ export declare class AdminController {
         certifications: import("@prisma/client/runtime/library").JsonValue | null;
         lastLoginAt: Date | null;
         lastActiveAt: Date | null;
+        riskScore: number;
+        riskLevel: import(".prisma/client").$Enums.RiskLevel;
+        riskLockedAt: Date | null;
+        riskOverrideBy: string | null;
+        riskOverrideAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
@@ -203,6 +218,11 @@ export declare class AdminController {
         certifications: import("@prisma/client/runtime/library").JsonValue | null;
         lastLoginAt: Date | null;
         lastActiveAt: Date | null;
+        riskScore: number;
+        riskLevel: import(".prisma/client").$Enums.RiskLevel;
+        riskLockedAt: Date | null;
+        riskOverrideBy: string | null;
+        riskOverrideAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;
@@ -227,6 +247,7 @@ export declare class AdminController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            deletedAt: Date | null;
             description: string;
             status: import(".prisma/client").$Enums.ReportStatus;
             reportNumber: string;
@@ -346,9 +367,9 @@ export declare class AdminController {
             retryCount: number;
             notes: string | null;
             reportId: string;
-            paymentDetails: import("@prisma/client/runtime/library").JsonValue | null;
             transactionId: string | null;
             invoiceNumber: string | null;
+            paymentDetails: import("@prisma/client/runtime/library").JsonValue | null;
             invoiceUrl: string | null;
             initiatedBy: string | null;
             approvedBy: string | null;
@@ -412,6 +433,11 @@ export declare class AdminController {
         certifications: import("@prisma/client/runtime/library").JsonValue | null;
         lastLoginAt: Date | null;
         lastActiveAt: Date | null;
+        riskScore: number;
+        riskLevel: import(".prisma/client").$Enums.RiskLevel;
+        riskLockedAt: Date | null;
+        riskOverrideBy: string | null;
+        riskOverrideAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
         deletedAt: Date | null;

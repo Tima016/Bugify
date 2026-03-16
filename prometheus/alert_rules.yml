@@ -1,0 +1,90 @@
+groups:
+  - name: bugify_security
+    rules:
+      # ---- Auth Attack Detection ----
+      - alert: BruteforceSpike
+        expr: rate(auth_login_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: high
+        annotations:
+          summary: "Login failure rate exceeds 10/5min"
+          runbook: "Check auth_login_failures_total by reason label. May indicate credential stuffing."
+
+      - alert: TokenTheftDetected
+        expr: increase(auth_token_refreshes_total{status="theft_detected"}[1h]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Refresh token reuse detected — possible token theft"
+          runbook: "Token family has been revoked. Investigate affected user sessions."
+
+      # ---- Financial Alerts ----
+      - alert: PayoutVelocityExceeded
+        expr: increase(security_alerts_total{category="PAYMENT_FRAUD"}[1h]) > 0
+        labels:
+          severity: high
+        annotations:
+          summary: "Payout velocity limit exceeded"
+
+      - alert: EscrowBalanceLow
+        expr: business_payout_amount_total > 0.7 * on() group_left() business_escrow_balance
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Escrow balance below 30% — potential drain"
+
+      # ---- Fraud Detection Alerts ----
+      - alert: MultiAccountDetected
+        expr: increase(security_alerts_total{category="MULTI_ACCOUNT",severity="CRITICAL"}[1h]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Multi-account wallet clustering detected"
+
+      - alert: InsiderThreatDetected
+        expr: increase(security_alerts_total{category="INSIDER_THREAT"}[1h]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Insider threat signal detected (self-approval or bulk action)"
+
+      - alert: FakeFarmingDetected
+        expr: increase(security_alerts_total{category="FAKE_FARMING"}[6h]) > 3
+        labels:
+          severity: medium
+        annotations:
+          summary: "Multiple fake farming signals in 6 hours"
+
+      # ---- System Health ----
+      - alert: HighErrorRate
+        expr: rate(http_errors_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: high
+        annotations:
+          summary: "5xx error rate exceeds 5%"
+
+      - alert: RateLimitSpike
+        expr: rate(http_errors_total{status_code="429"}[5m]) > 50
+        for: 1m
+        labels:
+          severity: medium
+        annotations:
+          summary: "Rate limiting triggered >50 times in 5 minutes"
+
+      - alert: MalwareDetected
+        expr: increase(security_malware_detections_total[1h]) > 0
+        labels:
+          severity: high
+        annotations:
+          summary: "Malware detected in uploaded file — file quarantined"
+
+      - alert: HighLatencyP99
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: medium
+        annotations:
+          summary: "P99 request latency exceeds 5 seconds"
